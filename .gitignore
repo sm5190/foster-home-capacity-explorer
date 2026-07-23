@@ -1,5 +1,5 @@
 # Dependencies
-/node_modules
+/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,7 +9,7 @@
 !.yarn/versions
 
 # Testing and coverage
-/coverage
+/coverage/
 playwright-report/
 test-results/
 
@@ -17,45 +17,52 @@ test-results/
 /.next/
 /out/
 
-# Production
-/build
+# Production build
+/build/
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Vercel
-.vercel
+.vercel/
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # Python environments and caches
 .venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 *.py[cod]
 .python-version
 
-# Raw source data
+# Raw source data remains build-time only
 data/raw/*
 !data/raw/.gitkeep
 
-# Generated database and exports
+# Only validated aggregate artifacts are committed
 data/generated/*
 !data/generated/.gitkeep
+!data/generated/foster_capacity.db
+!data/generated/metadata.json
+!data/generated/county-summary.csv
 
-# Local database sidecar files
+# SQLite temporary and sidecar files
 *.db-journal
 *.db-shm
 *.db-wal
+*.tmp.db
+*.tmp.csv
 
-# OS and editor files
+# Operating system and editor files
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
 
 # Debug logs
 npm-debug.log*
@@ -65,3 +72,4 @@ yarn-error.log*
 
 # Certificates and private keys
 *.pem
+*.key
