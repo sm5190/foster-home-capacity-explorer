@@ -67,4 +67,3 @@ test-results/
 
 # Python tooling
 .python-version
-"@ | Add-Content .gitignore
