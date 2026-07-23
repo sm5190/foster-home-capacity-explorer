@@ -23,10 +23,6 @@ from scripts.etl.config import (
 )
 from scripts.etl.derive_snapshot import StatewideSnapshot
 
-from scripts.etl.aggregate_investigation_questions import (
-    CountyInvestigationQuestion,
-)
-
 
 def calculate_sha256(path: Path) -> str:
     """Return the SHA-256 checksum of a file."""
@@ -260,34 +256,6 @@ def insert_county_placement_flows(
             is_local
         )
         VALUES (?, ?, ?, ?, ?)
-        """,
-        rows,
-    )
-
-
-def insert_county_investigation_questions(
-    connection: sqlite3.Connection,
-    questions: tuple[CountyInvestigationQuestion, ...],
-) -> None:
-    """Insert deterministic county investigation questions."""
-
-    rows = [
-        (
-            question.county_slug,
-            question.display_order,
-            question.question_text,
-        )
-        for question in questions
-    ]
-
-    connection.executemany(
-        """
-        INSERT INTO county_investigation_question (
-            county_slug,
-            display_order,
-            question_text
-        )
-        VALUES (?, ?, ?)
         """,
         rows,
     )

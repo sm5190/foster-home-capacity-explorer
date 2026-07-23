@@ -1,12 +1,15 @@
 PRAGMA foreign_keys = ON;
 
+
 CREATE TABLE metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
 
+
 CREATE TABLE statewide_summary (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+    id INTEGER PRIMARY KEY
+        CHECK (id = 1),
 
     reporting_cutoff TEXT NOT NULL,
     observation_start TEXT NOT NULL,
@@ -53,6 +56,7 @@ CREATE TABLE statewide_summary (
             OR median_observed_active_day_rate BETWEEN 0 AND 1
         )
 );
+
 
 CREATE TABLE county_summary (
     county_slug TEXT PRIMARY KEY,
@@ -143,10 +147,19 @@ CREATE TABLE county_summary (
         CHECK (limited_data IN (0, 1))
 );
 
+
 CREATE TABLE county_age_alignment (
     county_slug TEXT NOT NULL,
+
     age_band TEXT NOT NULL
-        CHECK (age_band IN ('0-5', '6-12', '13-17', 'unknown')),
+        CHECK (
+            age_band IN (
+                '0-5',
+                '6-12',
+                '13-17',
+                'unknown'
+            )
+        ),
 
     current_children INTEGER NOT NULL
         CHECK (current_children >= 0),
@@ -163,12 +176,62 @@ CREATE TABLE county_age_alignment (
     limited_data INTEGER NOT NULL
         CHECK (limited_data IN (0, 1)),
 
-    PRIMARY KEY (county_slug, age_band),
+    recruitment_evidence INTEGER NOT NULL
+        CHECK (recruitment_evidence IN (0, 1)),
+
+    statewide_p75_threshold REAL
+        CHECK (
+            statewide_p75_threshold IS NULL
+            OR statewide_p75_threshold >= 0
+        ),
+
+    PRIMARY KEY (
+        county_slug,
+        age_band
+    ),
 
     FOREIGN KEY (county_slug)
         REFERENCES county_summary(county_slug)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    CHECK (
+        age_band != 'unknown'
+        OR (
+            preference_matching_homes = 0
+            AND children_per_matching_home IS NULL
+            AND limited_data = 1
+            AND recruitment_evidence = 0
+            AND statewide_p75_threshold IS NULL
+        )
+    ),
+
+    CHECK (
+        age_band = 'unknown'
+        OR (
+            (
+                preference_matching_homes = 0
+                AND children_per_matching_home IS NULL
+            )
+            OR (
+                preference_matching_homes > 0
+                AND children_per_matching_home IS NOT NULL
+            )
+        )
+    ),
+
+    CHECK (
+        recruitment_evidence = 0
+        OR (
+            age_band != 'unknown'
+            AND limited_data = 0
+            AND children_per_matching_home IS NOT NULL
+            AND statewide_p75_threshold IS NOT NULL
+            AND children_per_matching_home
+                >= statewide_p75_threshold
+        )
+    )
 );
+
 
 CREATE TABLE county_placement_flow (
     origin_county_slug TEXT NOT NULL,
@@ -193,16 +256,20 @@ CREATE TABLE county_placement_flow (
         ON DELETE CASCADE
 );
 
+
 CREATE TABLE county_signal (
     county_slug TEXT NOT NULL,
 
     focus TEXT NOT NULL
-        CHECK (focus IN ('recruitment', 'engagement')),
+        CHECK (
+            focus IN (
+                'recruitment',
+                'engagement'
+            )
+        ),
 
     signal_code TEXT NOT NULL,
-
     signal_value REAL,
-
     threshold_value REAL,
 
     PRIMARY KEY (
@@ -216,13 +283,15 @@ CREATE TABLE county_signal (
         ON DELETE CASCADE
 );
 
+
 CREATE TABLE county_investigation_question (
     county_slug TEXT NOT NULL,
 
     display_order INTEGER NOT NULL
-        CHECK (display_order >= 1),
+        CHECK (display_order BETWEEN 1 AND 5),
 
-    question_text TEXT NOT NULL,
+    question_text TEXT NOT NULL
+        CHECK (LENGTH(TRIM(question_text)) > 0),
 
     PRIMARY KEY (
         county_slug,
@@ -240,17 +309,20 @@ ON county_summary (
     children_per_current_home DESC
 );
 
+
 CREATE INDEX idx_county_engagement_priority
 ON county_summary (
     engagement_signal_count DESC,
     homes_without_recent_activity DESC
 );
 
+
 CREATE INDEX idx_county_flow_origin_count
 ON county_placement_flow (
     origin_county_slug,
     placement_count DESC
 );
+
 
 CREATE INDEX idx_county_age_band
 ON county_age_alignment (
