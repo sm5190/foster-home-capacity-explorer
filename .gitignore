@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,60 +8,60 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing and coverage
 /coverage
+playwright-report/
+test-results/
 
-# next.js
+# Next.js
 /.next/
 /out/
 
-# production
+# Production
 /build
 
-# misc
-.DS_Store
-*.pem
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-
-
-@"
-
-# Python
+# Python environments and caches
 .venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.py[cod]
+.python-version
 
 # Raw source data
 data/raw/*
 !data/raw/.gitkeep
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Generated database and exports
+data/generated/*
+!data/generated/.gitkeep
 
-# Test and coverage output
-coverage/
-playwright-report/
-test-results/
+# Local database sidecar files
+*.db-journal
+*.db-shm
+*.db-wal
 
-# Python tooling
-.python-version
+# OS and editor files
+.DS_Store
+Thumbs.db
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Certificates and private keys
+*.pem
