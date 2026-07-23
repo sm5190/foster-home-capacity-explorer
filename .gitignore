@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+
+@"
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+
+# Raw source data
+data/raw/*
+!data/raw/.gitkeep
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# Python tooling
+.python-version
+"@ | Add-Content .gitignore
