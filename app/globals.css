@@ -674,6 +674,222 @@ h3 {
   white-space: nowrap;
 }
 
+
+.controls-panel {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  padding: 1.35rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.filter-group {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.filter-group legend,
+.filter-field > span {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.focus-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  border-radius: var(--radius-small);
+  padding: 0.3rem;
+  background: var(--surface-muted);
+}
+
+.focus-option {
+  cursor: pointer;
+}
+
+.focus-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.focus-option span {
+  display: inline-flex;
+  min-height: 2.45rem;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  padding: 0.45rem 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.focus-option input:checked + span {
+  border-color: var(--primary);
+  background: var(--surface);
+  color: var(--primary-dark);
+  box-shadow: 0 2px 8px rgb(23 34 27 / 8%);
+}
+
+.focus-option input:focus-visible + span {
+  outline: 3px solid #2f7d59;
+  outline-offset: 3px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.filter-field {
+  min-width: 0;
+}
+
+.form-control {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  padding: 0.55rem 0.7rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.form-control:hover {
+  border-color: var(--primary);
+}
+
+.filter-note {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.sort-link {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: inherit;
+  gap: 0.35rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sort-link:hover {
+  color: var(--primary-dark);
+}
+
+.sort-indicator {
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.notice {
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--attention);
+  border-radius:
+    0 var(--radius-small)
+    var(--radius-small) 0;
+  padding: 1rem;
+  background: var(--attention-soft);
+  color: #68400f;
+}
+
+.empty-table-state {
+  display: grid;
+  min-height: 18rem;
+  place-content: center;
+  justify-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-medium);
+  padding: 2rem;
+  background: var(--surface);
+  text-align: center;
+}
+
+.empty-table-state p {
+  max-width: 42ch;
+  color: var(--text-muted);
+}
+
+.loading-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.loading-card-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.skeleton {
+  border-radius: var(--radius-small);
+  background:
+    linear-gradient(
+      90deg,
+      #e6eae5 25%,
+      #f2f4f1 50%,
+      #e6eae5 75%
+    );
+  background-size: 200% 100%;
+  animation:
+    skeleton-loading 1.4s infinite;
+}
+
+.skeleton--eyebrow {
+  width: 9rem;
+  height: 0.8rem;
+}
+
+.skeleton--title {
+  width: min(90%, 42rem);
+  height: 4rem;
+}
+
+.skeleton--text {
+  width: min(85%, 35rem);
+  height: 1.2rem;
+}
+
+.skeleton--card {
+  height: 9rem;
+}
+
+.skeleton--table {
+  height: 28rem;
+  margin-top: 1rem;
+}
+
+@keyframes skeleton-loading {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 980px) {
   .metric-grid {
     grid-template-columns:
@@ -691,6 +907,16 @@ h3 {
 
   .page-actions {
     justify-content: flex-start;
+  }
+
+  .filter-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .loading-card-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -737,6 +963,20 @@ h3 {
     display: grid;
     gap: 0.2rem;
   }
+
+.filter-grid,
+  .loading-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-toggle {
+    display: grid;
+  }
+
+  .focus-option span {
+    width: 100%;
+  }
+
 }
 
 @media print {
@@ -790,4 +1030,10 @@ h3 {
   a {
     text-decoration: none;
   }
+
+.controls-panel,
+  .notice {
+    display: none !important;
+  }
+
 }
