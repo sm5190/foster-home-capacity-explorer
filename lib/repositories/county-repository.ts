@@ -8,6 +8,7 @@ import {
   opportunityLevelSchema,
   opportunityReasonCodeSchema,
   primaryOpportunitySchema,
+  type DetailAgeBand,
 } from "../schemas";
 import { RepositoryDataError } from "./errors";
 import type {
@@ -91,7 +92,13 @@ export interface CountyRepository {
 
   findSummaryBySlug(countySlug: string): CountySummaryRecord | null;
 
+  listSignals(): readonly CountySignalRecord[];
+
   listSignalsForCounty(countySlug: string): readonly CountySignalRecord[];
+
+  listAgeAlignmentForBand(
+    ageBand: DetailAgeBand,
+  ): readonly CountyAgeAlignmentRecord[];
 
   listAgeAlignmentForCounty(
     countySlug: string,
@@ -151,10 +158,51 @@ function mapCountySummary(row: CountySummaryRow): CountySummaryRecord {
     engagementSignalCount: row.engagement_signal_count,
 
     primaryOpportunity: primaryOpportunitySchema.parse(row.primary_opportunity),
+
     limitedData: parseSqliteBoolean(
       row.limited_data,
       "county_summary.limited_data",
     ),
+  };
+}
+
+function mapCountySignal(row: CountySignalRow): CountySignalRecord {
+  return {
+    countySlug: row.county_slug,
+    focus: focusSchema.parse(row.focus),
+
+    signalCode: opportunityReasonCodeSchema.parse(row.signal_code),
+
+    signalValue: row.signal_value,
+    thresholdValue: row.threshold_value,
+  };
+}
+
+function mapCountyAgeAlignment(
+  row: CountyAgeAlignmentRow,
+): CountyAgeAlignmentRecord {
+  return {
+    countySlug: row.county_slug,
+
+    ageBand: detailAgeBandSchema.parse(row.age_band),
+
+    currentChildren: row.current_children,
+
+    preferenceMatchingHomes: row.preference_matching_homes,
+
+    childrenPerMatchingHome: row.children_per_matching_home,
+
+    limitedData: parseSqliteBoolean(
+      row.limited_data,
+      "county_age_alignment.limited_data",
+    ),
+
+    recruitmentEvidence: parseSqliteBoolean(
+      row.recruitment_evidence,
+      "county_age_alignment.recruitment_evidence",
+    ),
+
+    statewideP75Threshold: row.statewide_p75_threshold,
   };
 }
 
@@ -237,6 +285,28 @@ export class SqliteCountyRepository implements CountyRepository {
     return row ? mapCountySummary(row) : null;
   }
 
+  listSignals(): readonly CountySignalRecord[] {
+    const rows = this.database
+      .prepare(
+        `
+          SELECT
+            county_slug,
+            focus,
+            signal_code,
+            signal_value,
+            threshold_value
+          FROM county_signal
+          ORDER BY
+            county_slug ASC,
+            focus ASC,
+            signal_code ASC
+        `,
+      )
+      .all() as CountySignalRow[];
+
+    return rows.map(mapCountySignal);
+  }
+
   listSignalsForCounty(countySlug: string): readonly CountySignalRecord[] {
     const parsedSlug = countySlugSchema.parse(countySlug);
 
@@ -258,13 +328,34 @@ export class SqliteCountyRepository implements CountyRepository {
       )
       .all(parsedSlug) as CountySignalRow[];
 
-    return rows.map((row) => ({
-      countySlug: row.county_slug,
-      focus: focusSchema.parse(row.focus),
-      signalCode: opportunityReasonCodeSchema.parse(row.signal_code),
-      signalValue: row.signal_value,
-      thresholdValue: row.threshold_value,
-    }));
+    return rows.map(mapCountySignal);
+  }
+
+  listAgeAlignmentForBand(
+    ageBand: DetailAgeBand,
+  ): readonly CountyAgeAlignmentRecord[] {
+    const parsedAgeBand = detailAgeBandSchema.parse(ageBand);
+
+    const rows = this.database
+      .prepare(
+        `
+          SELECT
+            county_slug,
+            age_band,
+            current_children,
+            preference_matching_homes,
+            children_per_matching_home,
+            limited_data,
+            recruitment_evidence,
+            statewide_p75_threshold
+          FROM county_age_alignment
+          WHERE age_band = ?
+          ORDER BY county_slug ASC
+        `,
+      )
+      .all(parsedAgeBand) as CountyAgeAlignmentRow[];
+
+    return rows.map(mapCountyAgeAlignment);
   }
 
   listAgeAlignmentForCounty(
@@ -298,22 +389,7 @@ export class SqliteCountyRepository implements CountyRepository {
       )
       .all(parsedSlug) as CountyAgeAlignmentRow[];
 
-    return rows.map((row) => ({
-      countySlug: row.county_slug,
-      ageBand: detailAgeBandSchema.parse(row.age_band),
-      currentChildren: row.current_children,
-      preferenceMatchingHomes: row.preference_matching_homes,
-      childrenPerMatchingHome: row.children_per_matching_home,
-      limitedData: parseSqliteBoolean(
-        row.limited_data,
-        "county_age_alignment.limited_data",
-      ),
-      recruitmentEvidence: parseSqliteBoolean(
-        row.recruitment_evidence,
-        "county_age_alignment.recruitment_evidence",
-      ),
-      statewideP75Threshold: row.statewide_p75_threshold,
-    }));
+    return rows.map(mapCountyAgeAlignment);
   }
 
   listPlacementFlowsForCounty(
@@ -341,9 +417,13 @@ export class SqliteCountyRepository implements CountyRepository {
 
     return rows.map((row) => ({
       originCountySlug: row.origin_county_slug,
+
       destinationCountyName: row.destination_county_name,
+
       placementCount: row.placement_count,
+
       placementShare: row.placement_share,
+
       isLocal: parseSqliteBoolean(
         row.is_local,
         "county_placement_flow.is_local",
@@ -372,7 +452,9 @@ export class SqliteCountyRepository implements CountyRepository {
 
     return rows.map((row) => ({
       countySlug: row.county_slug,
+
       displayOrder: row.display_order,
+
       questionText: row.question_text,
     }));
   }
