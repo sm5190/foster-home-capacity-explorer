@@ -81,6 +81,20 @@ describe("typed SQLite repositories", () => {
     ).toBe(cook!.currentFosterPlacements);
   });
 
+  it("reads all stored county signals in one query", () => {
+    const counties = countyRepository.listSummaries();
+
+    const signals = countyRepository.listSignals();
+
+    const expectedSignalCount = counties.reduce(
+      (total, county) =>
+        total + county.recruitmentSignalCount + county.engagementSignalCount,
+      0,
+    );
+
+    expect(signals).toHaveLength(expectedSignalCount);
+  });
+
   it("returns null for an unknown valid county slug", () => {
     expect(countyRepository.findSummaryBySlug("not-a-real-county")).toBeNull();
   });
@@ -107,6 +121,16 @@ describe("typed SQLite repositories", () => {
     for (const signal of signals) {
       expect(signal.countySlug).toBe("cook");
       expect(["recruitment", "engagement"]).toContain(signal.focus);
+    }
+  });
+
+  it("reads one age band for all counties", () => {
+    const rows = countyRepository.listAgeAlignmentForBand("0-5");
+
+    expect(rows).toHaveLength(103);
+
+    for (const row of rows) {
+      expect(row.ageBand).toBe("0-5");
     }
   });
 
