@@ -8,3 +8,19 @@ export const EXPECTED_DATABASE_METADATA = {
   observationStart: "2022-01-01",
   buildStatus: "complete",
 } as const;
+
+/**
+ * Resolve the deployed application version.
+ *
+ * The default matches package.json for local development.
+ */
+export function getAppVersion(): string {
+  return process.env.APP_VERSION?.trim() || "0.1.0";
+}
+
+/**
+ * Return the deployed source revision when one is provided.
+ */
+export function getCommitSha(): string | null {
+  return process.env.APP_COMMIT_SHA?.trim() || null;
+}
