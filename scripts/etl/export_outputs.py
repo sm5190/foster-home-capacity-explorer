@@ -24,9 +24,11 @@ COUNTY_SUMMARY_EXPORT_COLUMNS: Final[tuple[str, ...]] = (
     "engagement_signal_count",
     "limited_data",
     "children_currently_in_care",
+    "current_kin_placements",
+    "current_foster_placements",
+    "current_nonfamily_placements",
     "current_foster_homes",
     "children_per_current_home",
-    "current_foster_placements",
     "local_foster_placements",
     "out_of_county_foster_placements",
     "local_placement_rate",
@@ -36,7 +38,6 @@ COUNTY_SUMMARY_EXPORT_COLUMNS: Final[tuple[str, ...]] = (
     "median_observed_active_day_rate",
     "renewals_within_90_days",
 )
-
 
 COUNTY_SUMMARY_EXPORT_QUERY: Final = """
     SELECT
@@ -51,9 +52,11 @@ COUNTY_SUMMARY_EXPORT_QUERY: Final = """
         county.engagement_signal_count,
         county.limited_data,
         county.children_currently_in_care,
+        county.current_kin_placements,
+        county.current_foster_placements,
+        county.current_nonfamily_placements,
         county.current_foster_homes,
         county.children_per_current_home,
-        county.current_foster_placements,
         county.local_foster_placements,
         county.out_of_county_foster_placements,
         county.local_placement_rate,

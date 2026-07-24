@@ -86,6 +86,9 @@ def test_export_creates_valid_county_summary_csv(
     assert cook["county_name"] == "Cook"
     assert cook["current_foster_homes"] == "156"
     assert cook["current_foster_placements"] == "1044"
+
+    assert cook["current_kin_placements"] == "879"
+    assert cook["current_nonfamily_placements"] == "10"
     assert cook["reporting_cutoff"] == ("2026-07-01")
     assert cook["observation_start"] == ("2022-01-01")
 

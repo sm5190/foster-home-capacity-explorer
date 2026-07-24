@@ -58,6 +58,10 @@ def test_county_totals_reconcile_to_statewide_baselines(
 
     assert sum(row.homes_without_recent_activity for row in county_rows) == 225
 
+    assert sum(row.current_kin_placements for row in county_rows) == 3_688
+
+    assert sum(row.current_nonfamily_placements for row in county_rows) == 40
+
 
 def test_cook_county_metrics(
     county_rows,
@@ -83,6 +87,9 @@ def test_cook_county_metrics(
     assert cook.homes_with_recent_activity == 142
     assert cook.homes_without_recent_activity == 14
     assert cook.renewals_within_90_days == 73
+
+    assert cook.current_kin_placements == 879
+    assert cook.current_nonfamily_placements == 10
 
     assert cook.median_observed_active_day_rate == pytest.approx(0.6394640682095005)
 
@@ -115,3 +122,22 @@ def test_recent_activity_never_exceeds_current_homes(
         )
 
         assert row.homes_with_current_placement <= row.current_foster_homes
+
+
+def test_county_placement_settings_reconcile(
+    county_rows,
+) -> None:
+    """Every county current placement setting must reconcile."""
+
+    for row in county_rows:
+        assert (
+            row.current_kin_placements
+            + row.current_foster_placements
+            + row.current_nonfamily_placements
+            == row.children_currently_in_care
+        )
+
+        assert (
+            row.local_foster_placements + row.out_of_county_foster_placements
+            == row.current_foster_placements
+        )

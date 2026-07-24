@@ -24,7 +24,7 @@ DEFAULT_METADATA_EXPORT_PATH: Final = DEFAULT_GENERATED_DATA_DIR / "metadata.jso
 
 
 # Database build configuration
-SCHEMA_VERSION: Final = "1.1"
+SCHEMA_VERSION: Final = "1.2"
 EXPECTED_COUNTY_ROWS: Final = 103
 
 

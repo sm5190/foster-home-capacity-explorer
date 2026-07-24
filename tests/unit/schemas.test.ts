@@ -12,7 +12,7 @@ import {
 } from "../../lib/schemas";
 
 const metadataFixture = {
-  schemaVersion: "1.1",
+  schemaVersion: "1.2",
   reportingCutoff: "2026-07-01",
   observationStart: "2022-01-01",
   buildStatus: "complete" as const,

@@ -20,6 +20,13 @@ type CountRow = {
   row_count: number;
 };
 
+type CountyPlacementSettingsRow = {
+  children_currently_in_care: number;
+  current_kin_placements: number;
+  current_foster_placements: number;
+  current_nonfamily_placements: number;
+};
+
 describe("runtime SQLite database", () => {
   afterAll(() => {
     closeDatabaseConnection();
@@ -45,7 +52,7 @@ describe("runtime SQLite database", () => {
     const metadata = getDatabaseMetadata();
 
     expect(metadata).toEqual({
-      schemaVersion: "1.1",
+      schemaVersion: "1.2",
       reportingCutoff: "2026-07-01",
       observationStart: "2022-01-01",
       buildStatus: "complete",
@@ -90,6 +97,31 @@ describe("runtime SQLite database", () => {
       .get() as CountRow | undefined;
 
     expect(result?.row_count).toBe(103);
+  });
+
+  it("reads county placement-setting aggregates", () => {
+    const database = getDatabase();
+
+    const cook = database
+      .prepare(
+        `
+        SELECT
+          children_currently_in_care,
+          current_kin_placements,
+          current_foster_placements,
+          current_nonfamily_placements
+        FROM county_summary
+        WHERE county_slug = ?
+      `,
+      )
+      .get("cook") as CountyPlacementSettingsRow | undefined;
+
+    expect(cook).toEqual({
+      children_currently_in_care: 1_933,
+      current_kin_placements: 879,
+      current_foster_placements: 1_044,
+      current_nonfamily_placements: 10,
+    });
   });
 
   it("rejects write operations", () => {
