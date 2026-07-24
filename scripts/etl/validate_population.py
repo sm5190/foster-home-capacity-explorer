@@ -464,7 +464,7 @@ def validate_placement_flow_population(
 def validate_county_population(
     connection: sqlite3.Connection,
 ) -> None:
-    """Validate county row counts and statewide reconciliation."""
+    """Validate county rows and statewide reconciliation."""
 
     county_count = fetch_required_integer(
         connection,
@@ -497,14 +497,46 @@ def validate_county_population(
     county_totals = connection.execute(
         """
         SELECT
-            COALESCE(SUM(children_currently_in_care), 0),
-            COALESCE(SUM(current_foster_homes), 0),
-            COALESCE(SUM(current_foster_placements), 0),
-            COALESCE(SUM(local_foster_placements), 0),
-            COALESCE(SUM(out_of_county_foster_placements), 0),
-            COALESCE(SUM(homes_with_current_placement), 0),
-            COALESCE(SUM(homes_with_recent_activity), 0),
-            COALESCE(SUM(homes_without_recent_activity), 0)
+            COALESCE(
+                SUM(children_currently_in_care),
+                0
+            ),
+            COALESCE(
+                SUM(current_kin_placements),
+                0
+            ),
+            COALESCE(
+                SUM(current_foster_placements),
+                0
+            ),
+            COALESCE(
+                SUM(current_nonfamily_placements),
+                0
+            ),
+            COALESCE(
+                SUM(current_foster_homes),
+                0
+            ),
+            COALESCE(
+                SUM(local_foster_placements),
+                0
+            ),
+            COALESCE(
+                SUM(out_of_county_foster_placements),
+                0
+            ),
+            COALESCE(
+                SUM(homes_with_current_placement),
+                0
+            ),
+            COALESCE(
+                SUM(homes_with_recent_activity),
+                0
+            ),
+            COALESCE(
+                SUM(homes_without_recent_activity),
+                0
+            )
         FROM county_summary
         """
     ).fetchone()
@@ -513,8 +545,10 @@ def validate_county_population(
         """
         SELECT
             children_currently_in_care,
-            current_foster_homes,
+            current_kin_placements,
             current_foster_home_placements,
+            current_nonfamily_placements,
+            current_foster_homes,
             local_foster_placements,
             out_of_county_foster_placements,
             homes_with_current_placement,
@@ -534,6 +568,37 @@ def validate_county_population(
             "statewide summary. "
             f"County totals: {county_totals}; "
             f"statewide totals: {statewide_totals}."
+        )
+
+    county_mismatches = connection.execute(
+        """
+        SELECT
+            county_slug,
+            children_currently_in_care,
+            current_kin_placements,
+            current_foster_placements,
+            current_nonfamily_placements,
+            local_foster_placements,
+            out_of_county_foster_placements
+        FROM county_summary
+        WHERE
+            children_currently_in_care
+            != (
+                current_kin_placements
+                + current_foster_placements
+                + current_nonfamily_placements
+            )
+            OR current_foster_placements
+            != (
+                local_foster_placements
+                + out_of_county_foster_placements
+            )
+        """
+    ).fetchall()
+
+    if county_mismatches:
+        raise RuntimeError(
+            f"County placement-setting counts do not reconcile: {county_mismatches}"
         )
 
 

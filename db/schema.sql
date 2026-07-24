@@ -65,6 +65,15 @@ CREATE TABLE county_summary (
     children_currently_in_care INTEGER NOT NULL
         CHECK (children_currently_in_care >= 0),
 
+    current_kin_placements INTEGER NOT NULL
+        CHECK (current_kin_placements >= 0),
+
+    current_foster_placements INTEGER NOT NULL
+        CHECK (current_foster_placements >= 0),
+
+    current_nonfamily_placements INTEGER NOT NULL
+        CHECK (current_nonfamily_placements >= 0),
+
     current_foster_homes INTEGER NOT NULL
         CHECK (current_foster_homes >= 0),
 
@@ -73,9 +82,6 @@ CREATE TABLE county_summary (
             children_per_current_home IS NULL
             OR children_per_current_home >= 0
         ),
-
-    current_foster_placements INTEGER NOT NULL
-        CHECK (current_foster_placements >= 0),
 
     local_foster_placements INTEGER NOT NULL
         CHECK (local_foster_placements >= 0),
@@ -144,7 +150,20 @@ CREATE TABLE county_summary (
         ),
 
     limited_data INTEGER NOT NULL
-        CHECK (limited_data IN (0, 1))
+        CHECK (limited_data IN (0, 1)),
+
+    CHECK (
+        current_kin_placements
+        + current_foster_placements
+        + current_nonfamily_placements
+        = children_currently_in_care
+    ),
+
+    CHECK (
+        local_foster_placements
+        + out_of_county_foster_placements
+        = current_foster_placements
+    )
 );
 
 

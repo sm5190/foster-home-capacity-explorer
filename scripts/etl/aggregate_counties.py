@@ -34,10 +34,14 @@ class CountyAggregate:
     county_name: str
 
     children_currently_in_care: int
+
+    current_kin_placements: int
+    current_foster_placements: int
+    current_nonfamily_placements: int
+
     current_foster_homes: int
     children_per_current_home: float | None
 
-    current_foster_placements: int
     local_foster_placements: int
     out_of_county_foster_placements: int
     local_placement_rate: float | None
@@ -153,6 +157,18 @@ def derive_county_aggregates(
 
     children_by_county = Counter(child.removal_county for child in current_children)
 
+    kin_placements_by_county = Counter(
+        placement.removal_county
+        for placement in current_placements
+        if placement.resource_type == "kin"
+    )
+
+    nonfamily_placements_by_county = Counter(
+        placement.removal_county
+        for placement in current_placements
+        if placement.resource_type == "nonfamily"
+    )
+
     current_homes_by_county = Counter(
         provider.county_provider for provider in current_providers
     )
@@ -254,13 +270,42 @@ def derive_county_aggregates(
     for county_name in sorted(county_names):
         current_children_count = children_by_county[county_name]
 
-        current_homes_count = current_homes_by_county[county_name]
+        current_kin_placement_count = kin_placements_by_county[county_name]
 
         current_foster_placement_count = foster_placements_by_county[county_name]
+
+        current_nonfamily_placement_count = nonfamily_placements_by_county[county_name]
+
+        current_homes_count = current_homes_by_county[county_name]
+
+        current_placement_setting_total = (
+            current_kin_placement_count
+            + current_foster_placement_count
+            + current_nonfamily_placement_count
+        )
+
+        if current_placement_setting_total != current_children_count:
+            raise ValueError(
+                "Current placement-setting counts do not reconcile "
+                f"with current children for {county_name}. "
+                f"Children: {current_children_count}; "
+                f"placements: {current_placement_setting_total}."
+            )
+
+        # current_foster_placement_count = foster_placements_by_county[county_name]
 
         local_placement_count = local_placements_by_county[county_name]
 
         out_of_county_placement_count = out_of_county_placements_by_county[county_name]
+
+        if (
+            local_placement_count + out_of_county_placement_count
+            != current_foster_placement_count
+        ):
+            raise ValueError(
+                "Local and out-of-county foster placements do not "
+                f"reconcile for {county_name}."
+            )
 
         recent_home_count = len(homes_with_recent_activity[county_name])
 
@@ -306,10 +351,13 @@ def derive_county_aggregates(
             CountyAggregate(
                 county_slug=slugify_county(county_name),
                 county_name=county_name,
-                children_currently_in_care=(current_children_count),
-                current_foster_homes=(current_homes_count),
-                children_per_current_home=(children_per_home),
-                current_foster_placements=(current_foster_placement_count),
+                children_currently_in_care=current_children_count,
+                current_kin_placements=current_kin_placement_count,
+                current_foster_placements=current_foster_placement_count,
+                current_nonfamily_placements=(current_nonfamily_placement_count),
+                current_foster_homes=current_homes_count,
+                children_per_current_home=children_per_home,
+                # current_foster_placements=(current_foster_placement_count),
                 local_foster_placements=(local_placement_count),
                 out_of_county_foster_placements=(out_of_county_placement_count),
                 local_placement_rate=(local_placement_rate),

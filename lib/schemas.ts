@@ -188,10 +188,9 @@ export const countySummarySchema = z
   .strict();
 
 /*
- * County placement-setting breakdown
+ * County placement-setting breakdown.
  *
- * This is required by the product contract, but the current aggregate
- * database still needs county-level kin and nonfamily counts added.
+ * Counts are sourced from the aggregate county_summary table.
  */
 
 export const placementCategorySchema = z

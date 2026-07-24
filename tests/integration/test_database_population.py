@@ -139,19 +139,18 @@ def test_database_populates_county_summary(
     totals = database_connection.execute(
         """
         SELECT
-            SUM(children_currently_in_care)
-                AS children,
-            SUM(current_foster_homes)
-                AS homes,
-            SUM(current_foster_placements)
-                AS foster_placements,
-            SUM(local_foster_placements)
-                AS local_placements,
+            SUM(children_currently_in_care) AS children,
+            SUM(current_kin_placements) AS kin_placements,
+            SUM(current_foster_placements) AS foster_placements,
+            SUM(
+                current_nonfamily_placements
+            ) AS nonfamily_placements,
+            SUM(current_foster_homes) AS homes,
+            SUM(local_foster_placements) AS local_placements,
             SUM(
                 out_of_county_foster_placements
             ) AS out_of_county_placements,
-            SUM(homes_with_recent_activity)
-                AS recent_homes
+            SUM(homes_with_recent_activity) AS recent_homes
         FROM county_summary
         """
     ).fetchone()
@@ -179,6 +178,14 @@ def test_database_populates_county_summary(
     assert cook["county_name"] == "Cook"
     assert cook["current_foster_homes"] == 156
     assert cook["current_foster_placements"] == 1_044
+
+    assert totals["kin_placements"] == 3_688
+    assert totals["nonfamily_placements"] == 40
+
+    assert cook["children_currently_in_care"] == 1_933
+    assert cook["current_kin_placements"] == 879
+    assert cook["current_foster_placements"] == 1_044
+    assert cook["current_nonfamily_placements"] == 10
 
 
 def test_database_populates_classifications_and_signals(
@@ -708,3 +715,30 @@ def test_database_metadata_matches_all_aggregate_row_counts(
         assert count_row is not None
 
         assert int(metadata[metadata_key]) == int(count_row[0])
+
+
+def test_database_reconciles_county_placement_settings(
+    database_connection: sqlite3.Connection,
+) -> None:
+    """Reconcile each county placement setting to current children."""
+
+    mismatches = database_connection.execute(
+        """
+        SELECT county_slug
+        FROM county_summary
+        WHERE
+            children_currently_in_care
+            != (
+                current_kin_placements
+                + current_foster_placements
+                + current_nonfamily_placements
+            )
+            OR current_foster_placements
+            != (
+                local_foster_placements
+                + out_of_county_foster_placements
+            )
+        """
+    ).fetchall()
+
+    assert mismatches == []

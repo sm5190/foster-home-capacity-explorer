@@ -87,6 +87,8 @@ REQUIRED_COLUMNS: Final[dict[str, frozenset[str]]] = {
             "engagement_signal_count",
             "primary_opportunity",
             "limited_data",
+            "current_kin_placements",
+            "current_nonfamily_placements",
         }
     ),
     "county_age_alignment": frozenset(

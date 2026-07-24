@@ -1,19 +1,19 @@
 {
   "build_status": "complete",
-  "built_at_utc": "2026-07-23T23:35:36+00:00",
+  "built_at_utc": "2026-07-24T01:45:46+00:00",
   "county_export": {
     "filename": "county-summary.csv",
     "row_count": 103,
-    "sha256": "1f7b2ce94f9b8b20f77c7616e9ab244b3ad716d5d557256b14821d5e5137cc33"
+    "sha256": "8df5da359171bdab0219a69f09612c5fdbd5fc3697f6828aabc0e4d76a4c0db3"
   },
   "database": {
     "filename": "foster_capacity.db",
-    "sha256": "4bc46bc5e2638a068cc654f5f0f1af28738a9f6a23a09b62d8989a3f02a7572b"
+    "sha256": "5e9a5f69dd54f3758477fb3adbdb42cf7ed66281e8a7aa463ccbec4cc56741bb"
   },
-  "git_commit_sha": "759970983ba053bfbdc8b218e6735c37051edfca",
+  "git_commit_sha": "43df78b14942f3d9d5c562795529964529e43dbf",
   "observation_start": "2022-01-01",
   "reporting_cutoff": "2026-07-01",
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "sources": {
     "child": {
       "filename": "child_level.csv",

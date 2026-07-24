@@ -74,6 +74,12 @@ def insert_county_summary(
     *,
     county_slug: str = "example",
     county_name: str = "Example",
+    children_currently_in_care: int = 0,
+    current_kin_placements: int = 0,
+    current_foster_placements: int = 0,
+    current_nonfamily_placements: int = 0,
+    local_foster_placements: int = 0,
+    out_of_county_foster_placements: int = 0,
 ) -> None:
     """Insert a valid parent county row for schema tests."""
 
@@ -83,9 +89,11 @@ def insert_county_summary(
             county_slug,
             county_name,
             children_currently_in_care,
+            current_kin_placements,
+            current_foster_placements,
+            current_nonfamily_placements,
             current_foster_homes,
             children_per_current_home,
-            current_foster_placements,
             local_foster_placements,
             out_of_county_foster_placements,
             local_placement_rate,
@@ -102,31 +110,23 @@ def insert_county_summary(
             limited_data
         )
         VALUES (
-            ?,
-            ?,
-            0,
-            0,
-            NULL,
-            0,
-            0,
-            0,
-            NULL,
-            0,
-            0,
-            0,
-            NULL,
-            0,
-            'limited',
-            0,
-            'limited',
-            0,
-            'review',
-            1
+            ?, ?, ?, ?, ?, ?,
+            0, NULL, ?, ?, NULL,
+            0, 0, 0, NULL, 0,
+            'limited', 0,
+            'limited', 0,
+            'review', 1
         )
         """,
         (
             county_slug,
             county_name,
+            children_currently_in_care,
+            current_kin_placements,
+            current_foster_placements,
+            current_nonfamily_placements,
+            local_foster_placements,
+            out_of_county_foster_placements,
         ),
     )
 
@@ -713,4 +713,29 @@ def test_investigation_question_rejects_order_above_five(
                 'What should staff investigate?'
             )
             """
+        )
+
+
+def test_county_rejects_unreconciled_placement_settings(
+    schema_connection: sqlite3.Connection,
+) -> None:
+    """Reject county placement counts that do not sum to children."""
+
+    with pytest.raises(sqlite3.IntegrityError):
+        insert_county_summary(
+            schema_connection,
+            children_currently_in_care=1,
+        )
+
+
+def test_county_rejects_unreconciled_foster_locations(
+    schema_connection: sqlite3.Connection,
+) -> None:
+    """Reject foster counts that do not reconcile by location."""
+
+    with pytest.raises(sqlite3.IntegrityError):
+        insert_county_summary(
+            schema_connection,
+            children_currently_in_care=1,
+            current_foster_placements=1,
         )

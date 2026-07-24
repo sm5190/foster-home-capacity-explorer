@@ -141,9 +141,11 @@ def insert_county_summaries(
             county.county_slug,
             county.county_name,
             county.children_currently_in_care,
+            county.current_kin_placements,
+            county.current_foster_placements,
+            county.current_nonfamily_placements,
             county.current_foster_homes,
             county.children_per_current_home,
-            county.current_foster_placements,
             county.local_foster_placements,
             county.out_of_county_foster_placements,
             county.local_placement_rate,
@@ -168,9 +170,11 @@ def insert_county_summaries(
             county_slug,
             county_name,
             children_currently_in_care,
+            current_kin_placements,
+            current_foster_placements,
+            current_nonfamily_placements,
             current_foster_homes,
             children_per_current_home,
-            current_foster_placements,
             local_foster_placements,
             out_of_county_foster_placements,
             local_placement_rate,
@@ -187,8 +191,8 @@ def insert_county_summaries(
             limited_data
         )
         VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
         """,
         rows,
