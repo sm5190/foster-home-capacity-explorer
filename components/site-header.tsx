@@ -8,7 +8,7 @@ export function SiteHeader() {
           <span className="site-brand__mark">FI</span>
 
           <span>
-            <span className="site-brand__name">Foster Insights</span>
+            {/* <span className="site-brand__name">Foster Insights</span> */}
 
             <span className="site-brand__product">
               Illinois Foster Home Capacity Explorer
