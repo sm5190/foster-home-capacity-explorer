@@ -71,13 +71,19 @@ function buildSummaryText(
       ? `+${formatDecimal(absoluteChange, 1)}`
       : formatDecimal(absoluteChange, 1);
 
+  const percentageChange = formatPercentage(Math.abs(percentChange));
+
+  const changeDescription =
+    direction === "stable"
+      ? `changed by ${percentageChange}`
+      : `${directionText} by ${percentageChange}`;
+
   return (
-    `${countyName} County's children-per-home ratio ` +
-    `${directionText} from ` +
-    `${formatDecimal(twelveMonthsAgoRatio, 1)} in ` +
-    `July 2025 to ${formatDecimal(currentRatio, 1)} in ` +
-    `July 2026. The absolute change was ` +
-    `${signedChange}, or ${formatPercentage(percentChange)}.`
+    `${countyName} County's children-per-home pressure ` +
+    `${changeDescription}, from ` +
+    `${formatDecimal(twelveMonthsAgoRatio, 1)} to ` +
+    `${formatDecimal(currentRatio, 1)} children per licensed ` +
+    `home over the past 12 months.`
   );
 }
 
@@ -106,7 +112,9 @@ export function CapacityTrendChart({
             <XAxis
               dataKey="snapshotDate"
               tickFormatter={formatMonth}
-              minTickGap={24}
+              interval={0}
+              minTickGap={0}
+              tickMargin={10}
             />
 
             <YAxis
