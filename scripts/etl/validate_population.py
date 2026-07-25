@@ -559,7 +559,7 @@ def validate_county_population(
             out_of_county_foster_placements,
             homes_with_current_placement,
             homes_with_recent_activity,
-            homes_without_recent_activity.
+            homes_without_recent_activity,
             renewals_within_90_days,
             renewals_without_recent_activity
         FROM statewide_summary

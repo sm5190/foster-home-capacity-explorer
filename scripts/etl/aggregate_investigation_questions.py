@@ -522,7 +522,6 @@ def derive_county_investigation_questions(
                     county.county_slug,
                     0,
                 ),
-
                 monthly_trends=monthly_trends_by_county.get(
                     county.county_slug,
                     (),
