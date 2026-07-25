@@ -102,6 +102,7 @@ def insert_county_summary(
             homes_without_recent_activity,
             median_observed_active_day_rate,
             renewals_within_90_days,
+            renewals_without_recent_activity,
             recruitment_level,
             recruitment_signal_count,
             engagement_level,
@@ -112,7 +113,7 @@ def insert_county_summary(
         VALUES (
             ?, ?, ?, ?, ?, ?,
             0, NULL, ?, ?, NULL,
-            0, 0, 0, NULL, 0,
+            0, 0, 0, NULL, 0, 0,
             'limited', 0,
             'limited', 0,
             'review', 1

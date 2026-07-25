@@ -32,6 +32,8 @@ describe("typed SQLite repositories", () => {
       homesWithCurrentPlacement: 2_733,
       homesWithRecentActivity: 3_170,
       homesWithoutRecentActivity: 225,
+      renewalsWithin90Days: 1457,
+      renewalsWithoutRecentActivity: 184,
 
       localFosterPlacements: 1_519,
       outOfCountyFosterPlacements: 2_824,

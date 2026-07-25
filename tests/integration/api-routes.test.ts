@@ -27,7 +27,7 @@ describe("API route handlers", () => {
     expect(body).toEqual({
       status: "ok",
       service: "foster-home-capacity-explorer",
-      schemaVersion: "1.2",
+      schemaVersion: "1.3",
       dataCutoff: "2026-07-01",
       observationStart: "2022-01-01",
       buildStatus: "complete",
