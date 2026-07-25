@@ -37,6 +37,7 @@ COUNTY_SUMMARY_EXPORT_COLUMNS: Final[tuple[str, ...]] = (
     "homes_without_recent_activity",
     "median_observed_active_day_rate",
     "renewals_within_90_days",
+    "renewals_without_recent_activity",
 )
 
 COUNTY_SUMMARY_EXPORT_QUERY: Final = """
@@ -64,7 +65,8 @@ COUNTY_SUMMARY_EXPORT_QUERY: Final = """
         county.homes_with_recent_activity,
         county.homes_without_recent_activity,
         county.median_observed_active_day_rate,
-        county.renewals_within_90_days
+        county.renewals_within_90_days,
+        county.renewals_without_recent_activity
     FROM county_summary AS county
     CROSS JOIN statewide_summary AS statewide
     WHERE statewide.id = 1

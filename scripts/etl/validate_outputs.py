@@ -18,13 +18,13 @@ ALLOWED_PUBLIC_TABLES: Final[frozenset[str]] = frozenset(
         "metadata",
         "statewide_summary",
         "county_summary",
+        "county_monthly_trend",
         "county_age_alignment",
         "county_placement_flow",
         "county_signal",
         "county_investigation_question",
     }
 )
-
 FORBIDDEN_PUBLIC_COLUMNS: Final[frozenset[str]] = frozenset(
     {
         "id_child",

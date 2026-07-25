@@ -38,3 +38,25 @@ Database constraints and ETL validation require:
 - local foster home + out-of-county foster home = all foster-home placements
 
 The serving database remains aggregate-only and contains no child or provider identifiers.
+
+## Historical county capacity trend
+
+The county brief includes 13 monthly snapshots from July 1, 2025
+through July 1, 2026.
+
+Each point calculates children currently in care from the county
+divided by foster homes licensed in the county on that date.
+
+The trend is described as a capacity-pressure indicator, not as
+available foster-home beds.
+
+A change smaller than 5 percent is displayed as broadly stable.
+
+## Renewal plus no recent activity
+
+The application separately identifies currently licensed homes
+whose license end date is within 90 days and that have no recorded
+foster-home placement activity during the previous 90 days.
+
+The metric is used as outreach evidence. It is not treated as a
+prediction of non-renewal or closure.

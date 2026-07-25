@@ -51,6 +51,7 @@ from scripts.etl.validate_schema import (
 from scripts.etl.write_database import (
     insert_county_age_alignments,
     insert_county_investigation_questions,
+    insert_county_monthly_trends,
     insert_county_placement_flows,
     insert_county_signals,
     insert_county_summaries,
@@ -75,6 +76,10 @@ from scripts.etl.validate_outputs import (
 
 from scripts.export_outputs import export_aggregate_outputs
 from scripts.etl.export_outputs import write_metadata_json
+
+from scripts.etl.aggregate_monthly_trends import (
+    derive_county_monthly_trends,
+)
 
 
 def read_schema(schema_path: Path) -> str:
@@ -153,6 +158,11 @@ def populate_database(
 
     classification = classify_counties(base_county_aggregates)
 
+    monthly_trends = derive_county_monthly_trends(
+        source_data,
+        classification.counties,
+    )
+
     age_alignment_result = derive_county_age_alignment(
         source_data,
         base_county_aggregates,
@@ -168,6 +178,7 @@ def populate_database(
         age_alignment_result.alignments,
         placement_flows,
         classification.signals,
+        monthly_trends=monthly_trends,
     )
 
     built_at_utc = datetime.now(UTC).replace(microsecond=0).isoformat()
@@ -196,6 +207,11 @@ def populate_database(
     )
 
     validate_inserted_county_count(connection)
+
+    insert_county_monthly_trends(
+        connection,
+        monthly_trends,
+    )
 
     insert_county_age_alignments(
         connection,
@@ -247,6 +263,7 @@ def populate_database(
             "build_status": "complete",
             "county_summary_rows": str(len(classification.counties)),
             "county_signal_rows": str(len(classification.signals)),
+            "county_monthly_trend_rows": str(len(monthly_trends)),
             **age_metadata,
             **placement_flow_metadata,
             **investigation_question_metadata,

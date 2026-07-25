@@ -14,6 +14,8 @@ from scripts.etl.aggregate_placement_flows import (
     CountyPlacementFlow,
 )
 from scripts.etl.classify_opportunities import CountySignal
+from scripts.etl.aggregate_monthly_trends import CountyMonthlyTrend
+from scripts.etl.config import TREND_STABLE_PERCENT_CHANGE
 
 
 MINIMUM_QUESTIONS_PER_COUNTY: Final = 3
@@ -94,6 +96,50 @@ def group_age_evidence(
     }
 
 
+def group_monthly_trends(
+    trends: tuple[CountyMonthlyTrend, ...],
+) -> dict[str, tuple[CountyMonthlyTrend, ...]]:
+    """Group monthly trend points by county."""
+
+    grouped: defaultdict[str, list[CountyMonthlyTrend]] = defaultdict(list)
+
+    for trend in trends:
+        grouped[trend.county_slug].append(trend)
+
+    return {
+        county_slug: tuple(
+            sorted(
+                county_trends,
+                key=lambda trend: trend.snapshot_date,
+            )
+        )
+        for county_slug, county_trends in grouped.items()
+    }
+
+
+def calculate_trend_change(
+    trends: tuple[CountyMonthlyTrend, ...],
+) -> tuple[float, float, float] | None:
+    """Return previous ratio, current ratio, and percent change."""
+
+    if len(trends) < 2:
+        return None
+
+    previous_ratio = trends[0].children_per_current_home
+    current_ratio = trends[-1].children_per_current_home
+
+    if previous_ratio is None or current_ratio is None or previous_ratio <= 0:
+        return None
+
+    percent_change = (current_ratio - previous_ratio) / previous_ratio
+
+    return (
+        previous_ratio,
+        current_ratio,
+        percent_change,
+    )
+
+
 def calculate_cross_county_counts(
     flows: tuple[CountyPlacementFlow, ...],
     county_name_by_slug: dict[str, str],
@@ -135,6 +181,7 @@ def select_contextual_questions(
     age_evidence: tuple[str, ...],
     outbound_count: int,
     inbound_count: int,
+    monthly_trends: tuple[CountyMonthlyTrend, ...],
 ) -> list[str]:
     """Select up to three pattern-specific questions."""
 
@@ -166,6 +213,15 @@ def select_contextual_questions(
             "understand the number of children currently in "
             "care relative to currently licensed foster homes "
             f"in {county.county_name}?"
+        )
+    if county.renewals_without_recent_activity > 0:
+        engagement_questions.append(
+            f"{county.renewals_without_recent_activity} currently "
+            f"licensed homes in {county.county_name} County have "
+            "both a renewal date within 90 days and no recorded "
+            "foster-home placement activity during the previous "
+            "90 days. What renewal outreach or provider support "
+            "is already planned for these homes?"
         )
 
     if "high_share_without_recent_activity" in signal_codes:
@@ -203,6 +259,23 @@ def select_contextual_questions(
             "interpret measures that have limited or unstable "
             f"denominators in {county.county_name}?"
         )
+
+    trend_change = calculate_trend_change(monthly_trends)
+
+    if trend_change is not None:
+        previous_ratio, current_ratio, percent_change = trend_change
+
+        if abs(percent_change) >= TREND_STABLE_PERCENT_CHANGE:
+            direction = "increased" if percent_change > 0 else "decreased"
+
+            recruitment_questions.append(
+                f"{county.county_name} County's children-per-home "
+                f"ratio {direction} from {previous_ratio:.1f} to "
+                f"{current_ratio:.1f} over the previous 12 months. "
+                "Was the change driven primarily by the number of "
+                "children in care, the number of licensed homes, "
+                "or both?"
+            )
 
     selected: list[str] = []
 
@@ -247,6 +320,7 @@ def build_county_questions(
     age_evidence: tuple[str, ...],
     outbound_count: int,
     inbound_count: int,
+    monthly_trends: tuple[CountyMonthlyTrend, ...],
 ) -> tuple[CountyInvestigationQuestion, ...]:
     """Create the complete ordered question set for one county."""
 
@@ -256,6 +330,7 @@ def build_county_questions(
         age_evidence=age_evidence,
         outbound_count=outbound_count,
         inbound_count=inbound_count,
+        monthly_trends=monthly_trends,
     )
 
     question_texts = [
@@ -372,6 +447,7 @@ def derive_county_investigation_questions(
     age_alignments: tuple[CountyAgeAlignment, ...],
     placement_flows: tuple[CountyPlacementFlow, ...],
     signals: tuple[CountySignal, ...],
+    monthly_trends: tuple[CountyMonthlyTrend, ...],
 ) -> tuple[CountyInvestigationQuestion, ...]:
     """Derive deterministic questions for every county."""
 
@@ -421,6 +497,7 @@ def derive_county_investigation_questions(
     )
 
     questions: list[CountyInvestigationQuestion] = []
+    monthly_trends_by_county = group_monthly_trends(monthly_trends)
 
     for county in sorted(
         counties,
@@ -444,6 +521,10 @@ def derive_county_investigation_questions(
                 inbound_count=inbound_counts.get(
                     county.county_slug,
                     0,
+                ),
+                monthly_trends=monthly_trends_by_county.get(
+                    county.county_slug,
+                    (),
                 ),
             )
         )

@@ -11,6 +11,8 @@ from scripts.etl.config import (
     AGE_SIGNAL_MINIMUM_CHILDREN,
     ALL_AGE_BANDS,
     EXPECTED_COUNTY_ROWS,
+    REPORTING_CUTOFF_DATE,
+    TREND_SNAPSHOT_COUNT,
 )
 from scripts.etl.metadata import normalize_age_band_for_metadata
 
@@ -54,6 +56,7 @@ REQUIRED_METADATA_KEYS: Final = {
     "county_placement_flow_rows",
     "county_placement_flow_placements",
     "county_investigation_question_rows",
+    "county_monthly_trend_rows",
 }
 
 
@@ -536,7 +539,10 @@ def validate_county_population(
             COALESCE(
                 SUM(homes_without_recent_activity),
                 0
-            )
+            ),
+
+            COALESCE(SUM(renewals_within_90_days), 0),
+            COALESCE(SUM(renewals_without_recent_activity), 0)
         FROM county_summary
         """
     ).fetchone()
@@ -553,7 +559,9 @@ def validate_county_population(
             out_of_county_foster_placements,
             homes_with_current_placement,
             homes_with_recent_activity,
-            homes_without_recent_activity
+            homes_without_recent_activity,
+            renewals_within_90_days,
+            renewals_without_recent_activity
         FROM statewide_summary
         WHERE id = 1
         """
@@ -595,6 +603,30 @@ def validate_county_population(
             )
         """
     ).fetchall()
+
+    invalid_retention_intersections = connection.execute(
+        """
+        SELECT
+            county_slug,
+            renewals_within_90_days,
+            homes_without_recent_activity,
+            renewals_without_recent_activity
+        FROM county_summary
+        WHERE
+            renewals_without_recent_activity
+                > renewals_within_90_days
+            OR renewals_without_recent_activity
+                > homes_without_recent_activity
+            OR renewals_without_recent_activity
+                > current_foster_homes
+        """
+    ).fetchall()
+
+    if invalid_retention_intersections:
+        raise RuntimeError(
+            "County retention-intersection counts are invalid: "
+            f"{invalid_retention_intersections}"
+        )
 
     if county_mismatches:
         raise RuntimeError(
@@ -1232,6 +1264,102 @@ def validate_investigation_question_population(
         )
 
 
+def validate_monthly_trend_population(
+    connection: sqlite3.Connection,
+) -> None:
+    """Validate monthly county trend coverage and reconciliation."""
+
+    county_count = fetch_required_integer(
+        connection,
+        "SELECT COUNT(*) FROM county_summary",
+    )
+
+    trend_row_count = fetch_required_integer(
+        connection,
+        "SELECT COUNT(*) FROM county_monthly_trend",
+    )
+
+    expected_row_count = county_count * TREND_SNAPSHOT_COUNT
+
+    if trend_row_count != expected_row_count:
+        raise RuntimeError(
+            "County monthly trend row count is invalid. "
+            f"Expected {expected_row_count}; found {trend_row_count}."
+        )
+
+    metadata_row_count = int(
+        require_metadata_value(
+            connection,
+            "county_monthly_trend_rows",
+        )
+    )
+
+    if metadata_row_count != trend_row_count:
+        raise RuntimeError(
+            "County monthly trend metadata does not match the populated table."
+        )
+
+    invalid_counties = connection.execute(
+        """
+        SELECT
+            summary.county_slug,
+            COUNT(trend.snapshot_date) AS trend_count
+        FROM county_summary AS summary
+        LEFT JOIN county_monthly_trend AS trend
+            ON trend.county_slug = summary.county_slug
+        GROUP BY summary.county_slug
+        HAVING COUNT(trend.snapshot_date) != ?
+        """,
+        (TREND_SNAPSHOT_COUNT,),
+    ).fetchall()
+
+    if invalid_counties:
+        raise RuntimeError(
+            "Every county must have the complete monthly trend "
+            f"series: {invalid_counties}"
+        )
+
+    current_mismatches = connection.execute(
+        """
+        SELECT
+            summary.county_slug
+        FROM county_summary AS summary
+        LEFT JOIN county_monthly_trend AS trend
+            ON trend.county_slug = summary.county_slug
+            AND trend.snapshot_date = ?
+        WHERE
+            trend.county_slug IS NULL
+            OR trend.children_currently_in_care
+                != summary.children_currently_in_care
+            OR trend.current_foster_homes
+                != summary.current_foster_homes
+            OR (
+                trend.children_per_current_home IS NULL
+                AND summary.children_per_current_home IS NOT NULL
+            )
+            OR (
+                trend.children_per_current_home IS NOT NULL
+                AND summary.children_per_current_home IS NULL
+            )
+            OR (
+                trend.children_per_current_home IS NOT NULL
+                AND summary.children_per_current_home IS NOT NULL
+                AND ABS(
+                    trend.children_per_current_home
+                    - summary.children_per_current_home
+                ) > 0.000000001
+            )
+        """,
+        (REPORTING_CUTOFF_DATE.isoformat(),),
+    ).fetchall()
+
+    if current_mismatches:
+        raise RuntimeError(
+            "Final monthly trend points do not reconcile with "
+            f"county_summary: {current_mismatches}"
+        )
+
+
 def validate_population(
     connection: sqlite3.Connection,
 ) -> None:
@@ -1240,6 +1368,7 @@ def validate_population(
     validate_required_metadata(connection)
     validate_statewide_population(connection)
     validate_county_population(connection)
+    validate_monthly_trend_population(connection)
     validate_age_alignment_population(connection)
     validate_placement_flow_population(connection)
     validate_signal_population(connection)

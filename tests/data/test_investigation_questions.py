@@ -25,11 +25,16 @@ def test_creates_three_default_questions() -> None:
         (),
         (),
         (),
+        (),
     )
 
     assert len(questions) == 3
 
-    assert [question.display_order for question in questions] == [1, 2, 3]
+    assert [question.display_order for question in questions] == [
+        1,
+        2,
+        3,
+    ]
 
     assert all(question.county_slug == "example" for question in questions)
 
@@ -65,14 +70,14 @@ def test_combines_recruitment_engagement_and_flow_patterns() -> None:
         CountySignal(
             county_slug="example",
             focus="recruitment",
-            signal_code=("high_out_of_county_foster_rate"),
+            signal_code="high_out_of_county_foster_rate",
             signal_value=0.8,
             threshold_value=0.6,
         ),
         CountySignal(
             county_slug="example",
             focus="engagement",
-            signal_code=("high_share_without_recent_activity"),
+            signal_code="high_share_without_recent_activity",
             signal_value=0.3,
             threshold_value=0.2,
         ),
@@ -100,6 +105,7 @@ def test_combines_recruitment_engagement_and_flow_patterns() -> None:
         age_alignments,
         flows,
         signals,
+        (),
     )
 
     example_questions = [
@@ -112,7 +118,7 @@ def test_combines_recruitment_engagement_and_flow_patterns() -> None:
 
     assert "ages 13 to 17" in question_text
     assert "previous 90 days" in question_text
-    assert "serve children from other counties" in (question_text)
+    assert "serve children from other counties" in question_text
 
 
 def test_questions_are_deterministic() -> None:
@@ -131,10 +137,12 @@ def test_questions_are_deterministic() -> None:
         (),
         (),
         (),
+        (),
     )
 
     second = derive_county_investigation_questions(
         counties,
+        (),
         (),
         (),
         (),
@@ -154,6 +162,7 @@ def test_limited_data_creates_context_question() -> None:
 
     questions = derive_county_investigation_questions(
         (make_county(),),
+        (),
         (),
         (),
         (),
@@ -185,6 +194,7 @@ def test_every_county_receives_three_to_five_questions() -> None:
         (),
         (),
         (),
+        (),
     )
 
     for county in counties:
@@ -197,5 +207,8 @@ def test_every_county_receives_three_to_five_questions() -> None:
         assert 3 <= len(county_questions) <= 5
 
         assert [question.display_order for question in county_questions] == list(
-            range(1, len(county_questions) + 1)
+            range(
+                1,
+                len(county_questions) + 1,
+            )
         )

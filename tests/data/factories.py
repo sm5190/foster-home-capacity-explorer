@@ -57,6 +57,7 @@ def make_county(
         homes_without_recent_activity=0,
         median_observed_active_day_rate=None,
         renewals_within_90_days=0,
+        renewals_without_recent_activity=0,
         recruitment_level="limited",
         recruitment_signal_count=0,
         engagement_level="limited",

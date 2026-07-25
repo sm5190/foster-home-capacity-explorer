@@ -13,6 +13,7 @@ export { RepositoryDataError } from "./errors";
 export type {
   CountyAgeAlignmentRecord,
   CountyInvestigationQuestionRecord,
+  CountyMonthlyTrendRecord,
   CountyPlacementFlowRecord,
   CountySignalRecord,
   CountySummaryRecord,

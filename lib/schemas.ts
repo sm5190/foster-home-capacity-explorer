@@ -46,6 +46,7 @@ export const countySortSchema = z.enum([
   "homesWithoutRecentActivity",
   "medianObservedActiveDayRate",
   "renewalsWithin90Days",
+  "renewalsWithoutRecentActivity",
 ]);
 
 export const countySlugSchema = z
@@ -146,6 +147,8 @@ export const statewideSummarySchema = z
     homesWithCurrentPlacement: nonnegativeIntegerSchema,
     homesWithRecentActivity: nonnegativeIntegerSchema,
     homesWithoutRecentActivity: nonnegativeIntegerSchema,
+    renewalsWithin90Days: nonnegativeIntegerSchema,
+    renewalsWithoutRecentActivity: nonnegativeIntegerSchema,
 
     localFosterPlacements: nonnegativeIntegerSchema,
     outOfCountyFosterPlacements: nonnegativeIntegerSchema,
@@ -178,6 +181,7 @@ export const countySummarySchema = z
     homesWithoutRecentActivity: nonnegativeIntegerSchema,
     medianObservedActiveDayRate: nullableRateSchema,
     renewalsWithin90Days: nonnegativeIntegerSchema,
+    renewalsWithoutRecentActivity: nonnegativeIntegerSchema,
 
     recruitment: opportunitySummarySchema,
     engagement: opportunitySummarySchema,
@@ -262,6 +266,32 @@ export const investigationQuestionSchema = z
   })
   .strict();
 
+export const capacityTrendDirectionSchema = z.enum([
+  "increasing",
+  "stable",
+  "decreasing",
+  "unavailable",
+]);
+
+export const countyMonthlyTrendPointSchema = z
+  .object({
+    snapshotDate: z.iso.date(),
+    childrenCurrentlyInCare: nonnegativeIntegerSchema,
+    currentFosterHomes: nonnegativeIntegerSchema,
+    childrenPerCurrentHome: nullableNonnegativeNumberSchema,
+  })
+  .strict();
+
+export const capacityTrendSummarySchema = z
+  .object({
+    twelveMonthsAgoRatio: nullableNonnegativeNumberSchema,
+    currentRatio: nullableNonnegativeNumberSchema,
+    absoluteChange: z.number().nullable(),
+    percentChange: z.number().nullable(),
+    direction: capacityTrendDirectionSchema,
+  })
+  .strict();
+
 /*
  * API success responses
  */
@@ -291,6 +321,8 @@ export const countyDetailResponseSchema = z
     diagnosis: z.string().trim().min(1),
     county: countySummarySchema,
     placementSettings: countyPlacementSettingsSchema,
+    capacityTrend: z.array(countyMonthlyTrendPointSchema).length(13),
+    capacityTrendSummary: capacityTrendSummarySchema,
     ageAlignment: z.array(countyAgeAlignmentSchema).min(3).max(4),
     placementFlows: z.array(countyPlacementFlowSchema),
     investigationQuestions: z.array(investigationQuestionSchema).min(3).max(5),
@@ -399,3 +431,13 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
+
+export type CapacityTrendDirection = z.infer<
+  typeof capacityTrendDirectionSchema
+>;
+
+export type CountyMonthlyTrendPoint = z.infer<
+  typeof countyMonthlyTrendPointSchema
+>;
+
+export type CapacityTrendSummary = z.infer<typeof capacityTrendSummarySchema>;

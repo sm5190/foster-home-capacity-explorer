@@ -127,9 +127,9 @@ export function CountyPriorityTable({
                 sort="currentFosterHomes"
               />
 
-              <th className="numeric-column" scope="col">
+              {/* <th className="numeric-column" scope="col">
                 Homes with recent activity
-              </th>
+              </th> */}
 
               <SortHeader
                 label="Homes without recent activity"
@@ -150,6 +150,13 @@ export function CountyPriorityTable({
                 numeric
                 query={query}
                 sort="renewalsWithin90Days"
+              />
+
+              <SortHeader
+                label="Renewing + no recent activity"
+                sort="renewalsWithoutRecentActivity"
+                query={query}
+                numeric
               />
 
               <SortHeader
@@ -212,9 +219,9 @@ export function CountyPriorityTable({
                       {formatInteger(county.currentFosterHomes)}
                     </td>
 
-                    <td className="numeric-column">
+                    {/* <td className="numeric-column">
                       {formatInteger(county.homesWithRecentActivity)}
-                    </td>
+                    </td> */}
 
                     <td className="numeric-column">
                       {formatInteger(county.homesWithoutRecentActivity)}
@@ -226,6 +233,10 @@ export function CountyPriorityTable({
 
                     <td className="numeric-column">
                       {formatInteger(county.renewalsWithin90Days)}
+                    </td>
+
+                    <td className="numeric-column">
+                      {formatInteger(county.renewalsWithoutRecentActivity)}
                     </td>
                   </>
                 )}

@@ -38,12 +38,6 @@ CREATE TABLE statewide_summary (
     homes_without_recent_activity INTEGER NOT NULL
         CHECK (homes_without_recent_activity >= 0),
 
-    renewals_within_90_days INTEGER NOT NULL
-        CHECK (renewals_within_90_days >= 0),
-
-    renewals_without_recent_activity INTEGER NOT NULL
-        CHECK (renewals_without_recent_activity >= 0),
-
     local_foster_placements INTEGER NOT NULL
         CHECK (local_foster_placements >= 0),
 
@@ -60,46 +54,7 @@ CREATE TABLE statewide_summary (
         CHECK (
             median_observed_active_day_rate IS NULL
             OR median_observed_active_day_rate BETWEEN 0 AND 1
-        ),
-
-    CHECK (
-        current_kin_placements
-        + current_foster_home_placements
-        + current_nonfamily_placements
-        = children_currently_in_care
-    ),
-
-    CHECK (
-        local_foster_placements
-        + out_of_county_foster_placements
-        = current_foster_home_placements
-    ),
-
-    CHECK (
-        homes_with_recent_activity
-        + homes_without_recent_activity
-        = current_foster_homes
-    ),
-
-    CHECK (
-        homes_with_current_placement
-        <= current_foster_homes
-    ),
-
-    CHECK (
-        renewals_within_90_days
-        <= current_foster_homes
-    ),
-
-    CHECK (
-        renewals_without_recent_activity
-        <= renewals_within_90_days
-    ),
-
-    CHECK (
-        renewals_without_recent_activity
-        <= homes_without_recent_activity
-    )
+        )
 );
 
 
@@ -158,9 +113,6 @@ CREATE TABLE county_summary (
     renewals_within_90_days INTEGER NOT NULL
         CHECK (renewals_within_90_days >= 0),
 
-    renewals_without_recent_activity INTEGER NOT NULL
-        CHECK (renewals_without_recent_activity >= 0),
-
     recruitment_level TEXT NOT NULL
         CHECK (
             recruitment_level IN (
@@ -172,9 +124,7 @@ CREATE TABLE county_summary (
         ),
 
     recruitment_signal_count INTEGER NOT NULL
-        CHECK (
-            recruitment_signal_count BETWEEN 0 AND 3
-        ),
+        CHECK (recruitment_signal_count BETWEEN 0 AND 3),
 
     engagement_level TEXT NOT NULL
         CHECK (
@@ -187,9 +137,7 @@ CREATE TABLE county_summary (
         ),
 
     engagement_signal_count INTEGER NOT NULL
-        CHECK (
-            engagement_signal_count BETWEEN 0 AND 3
-        ),
+        CHECK (engagement_signal_count BETWEEN 0 AND 3),
 
     primary_opportunity TEXT NOT NULL
         CHECK (
@@ -202,9 +150,7 @@ CREATE TABLE county_summary (
         ),
 
     limited_data INTEGER NOT NULL
-        CHECK (
-            limited_data IN (0, 1)
-        ),
+        CHECK (limited_data IN (0, 1)),
 
     CHECK (
         current_kin_placements
@@ -217,92 +163,6 @@ CREATE TABLE county_summary (
         local_foster_placements
         + out_of_county_foster_placements
         = current_foster_placements
-    ),
-
-    CHECK (
-        homes_with_recent_activity
-        + homes_without_recent_activity
-        = current_foster_homes
-    ),
-
-    CHECK (
-        homes_with_current_placement
-        <= current_foster_homes
-    ),
-
-    CHECK (
-        renewals_within_90_days
-        <= current_foster_homes
-    ),
-
-    CHECK (
-        renewals_without_recent_activity
-        <= renewals_within_90_days
-    ),
-
-    CHECK (
-        renewals_without_recent_activity
-        <= homes_without_recent_activity
-    ),
-
-    CHECK (
-        (
-            current_foster_homes = 0
-            AND children_per_current_home IS NULL
-        )
-        OR
-        (
-            current_foster_homes > 0
-            AND children_per_current_home IS NOT NULL
-        )
-    )
-);
-
-
-CREATE TABLE county_monthly_trend (
-    county_slug TEXT NOT NULL,
-
-    snapshot_date TEXT NOT NULL,
-
-    children_currently_in_care INTEGER NOT NULL
-        CHECK (
-            children_currently_in_care >= 0
-        ),
-
-    current_foster_homes INTEGER NOT NULL
-        CHECK (
-            current_foster_homes >= 0
-        ),
-
-    children_per_current_home REAL
-        CHECK (
-            children_per_current_home IS NULL
-            OR children_per_current_home >= 0
-        ),
-
-    PRIMARY KEY (
-        county_slug,
-        snapshot_date
-    ),
-
-    FOREIGN KEY (
-        county_slug
-    )
-        REFERENCES county_summary (
-            county_slug
-        )
-        ON DELETE CASCADE,
-
-    CHECK (
-        (
-            current_foster_homes = 0
-            AND children_per_current_home IS NULL
-        )
-        OR
-        (
-            current_foster_homes > 0
-            AND children_per_current_home IS NOT NULL
-        )
     )
 );
 
@@ -321,14 +181,10 @@ CREATE TABLE county_age_alignment (
         ),
 
     current_children INTEGER NOT NULL
-        CHECK (
-            current_children >= 0
-        ),
+        CHECK (current_children >= 0),
 
     preference_matching_homes INTEGER NOT NULL
-        CHECK (
-            preference_matching_homes >= 0
-        ),
+        CHECK (preference_matching_homes >= 0),
 
     children_per_matching_home REAL
         CHECK (
@@ -337,14 +193,10 @@ CREATE TABLE county_age_alignment (
         ),
 
     limited_data INTEGER NOT NULL
-        CHECK (
-            limited_data IN (0, 1)
-        ),
+        CHECK (limited_data IN (0, 1)),
 
     recruitment_evidence INTEGER NOT NULL
-        CHECK (
-            recruitment_evidence IN (0, 1)
-        ),
+        CHECK (recruitment_evidence IN (0, 1)),
 
     statewide_p75_threshold REAL
         CHECK (
@@ -357,12 +209,8 @@ CREATE TABLE county_age_alignment (
         age_band
     ),
 
-    FOREIGN KEY (
-        county_slug
-    )
-        REFERENCES county_summary (
-            county_slug
-        )
+    FOREIGN KEY (county_slug)
+        REFERENCES county_summary(county_slug)
         ON DELETE CASCADE,
 
     CHECK (
@@ -383,8 +231,7 @@ CREATE TABLE county_age_alignment (
                 preference_matching_homes = 0
                 AND children_per_matching_home IS NULL
             )
-            OR
-            (
+            OR (
                 preference_matching_homes > 0
                 AND children_per_matching_home IS NOT NULL
             )
@@ -410,31 +257,21 @@ CREATE TABLE county_placement_flow (
     destination_county_name TEXT NOT NULL,
 
     placement_count INTEGER NOT NULL
-        CHECK (
-            placement_count >= 0
-        ),
+        CHECK (placement_count >= 0),
 
     placement_share REAL NOT NULL
-        CHECK (
-            placement_share BETWEEN 0 AND 1
-        ),
+        CHECK (placement_share BETWEEN 0 AND 1),
 
     is_local INTEGER NOT NULL
-        CHECK (
-            is_local IN (0, 1)
-        ),
+        CHECK (is_local IN (0, 1)),
 
     PRIMARY KEY (
         origin_county_slug,
         destination_county_name
     ),
 
-    FOREIGN KEY (
-        origin_county_slug
-    )
-        REFERENCES county_summary (
-            county_slug
-        )
+    FOREIGN KEY (origin_county_slug)
+        REFERENCES county_summary(county_slug)
         ON DELETE CASCADE
 );
 
@@ -460,12 +297,8 @@ CREATE TABLE county_signal (
         signal_code
     ),
 
-    FOREIGN KEY (
-        county_slug
-    )
-        REFERENCES county_summary (
-            county_slug
-        )
+    FOREIGN KEY (county_slug)
+        REFERENCES county_summary(county_slug)
         ON DELETE CASCADE
 );
 
@@ -474,61 +307,44 @@ CREATE TABLE county_investigation_question (
     county_slug TEXT NOT NULL,
 
     display_order INTEGER NOT NULL
-        CHECK (
-            display_order BETWEEN 1 AND 5
-        ),
+        CHECK (display_order BETWEEN 1 AND 5),
 
     question_text TEXT NOT NULL
-        CHECK (
-            LENGTH(TRIM(question_text)) > 0
-        ),
+        CHECK (LENGTH(TRIM(question_text)) > 0),
 
     PRIMARY KEY (
         county_slug,
         display_order
     ),
 
-    FOREIGN KEY (
-        county_slug
-    )
-        REFERENCES county_summary (
-            county_slug
-        )
+    FOREIGN KEY (county_slug)
+        REFERENCES county_summary(county_slug)
         ON DELETE CASCADE
 );
 
-
 CREATE INDEX idx_county_recruitment_priority
-    ON county_summary (
-        recruitment_signal_count DESC,
-        children_per_current_home DESC
-    );
+ON county_summary (
+    recruitment_signal_count DESC,
+    children_per_current_home DESC
+);
 
 
 CREATE INDEX idx_county_engagement_priority
-    ON county_summary (
-        engagement_signal_count DESC,
-        renewals_without_recent_activity DESC,
-        homes_without_recent_activity DESC
-    );
-
-
-CREATE INDEX idx_county_monthly_trend
-    ON county_monthly_trend (
-        county_slug,
-        snapshot_date
-    );
+ON county_summary (
+    engagement_signal_count DESC,
+    homes_without_recent_activity DESC
+);
 
 
 CREATE INDEX idx_county_flow_origin_count
-    ON county_placement_flow (
-        origin_county_slug,
-        placement_count DESC
-    );
+ON county_placement_flow (
+    origin_county_slug,
+    placement_count DESC
+);
 
 
 CREATE INDEX idx_county_age_band
-    ON county_age_alignment (
-        age_band,
-        children_per_matching_home DESC
-    );
+ON county_age_alignment (
+    age_band,
+    children_per_matching_home DESC
+);

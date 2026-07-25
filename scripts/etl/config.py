@@ -24,13 +24,18 @@ DEFAULT_METADATA_EXPORT_PATH: Final = DEFAULT_GENERATED_DATA_DIR / "metadata.jso
 
 
 # Database build configuration
-SCHEMA_VERSION: Final = "1.2"
+SCHEMA_VERSION: Final = "1.3"
 EXPECTED_COUNTY_ROWS: Final = 103
 
 
 # Analytical reporting period
 ANALYSIS_START_DATE: Final = date(2022, 1, 1)
 REPORTING_CUTOFF_DATE: Final = date(2026, 7, 1)
+
+# Historical county trend
+TREND_START_DATE: Final = date(2025, 7, 1)
+TREND_SNAPSHOT_COUNT: Final = 13
+TREND_STABLE_PERCENT_CHANGE: Final = 0.05
 
 
 # Provider engagement windows
