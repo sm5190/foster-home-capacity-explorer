@@ -89,6 +89,16 @@ export default function MethodologyPage() {
           to close.
         </p>
 
+        <h2>Renewal plus no recent activity</h2>
+
+        <p>
+          A currently licensed home is included in this measure when its
+          recorded license end date is within 90 days of July 1, 2026 and no
+          foster-home placement interval overlaps the previous 90 days. This
+          measure identifies an outreach intersection. It does not predict that
+          a home will close or fail to renew.
+        </p>
+
         <h2>Nonfamily placement settings</h2>
 
         <p>
@@ -112,6 +122,26 @@ export default function MethodologyPage() {
           statewide percentile comparisons. They are analytical signals intended
           to support local investigation, not scores of county or provider
           performance.
+        </p>
+
+        <h2>Capacity pressure over time</h2>
+
+        <p>
+          The county trend shows monthly snapshots from July 1, 2025 through
+          July 1, 2026. For each snapshot, the number of children in care from
+          the county is divided by the number of foster homes licensed in that
+          county on the same date.
+        </p>
+
+        <p>
+          The measure is a pressure indicator. It is not a calculation of
+          available beds, vacancies, or placement suitability.
+        </p>
+
+        <p>
+          A change below five percent is described as broadly stable. This
+          display rule is a product convention and is not an official DCFS
+          classification.
         </p>
       </section>
     </div>

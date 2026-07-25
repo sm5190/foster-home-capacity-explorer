@@ -890,6 +890,51 @@ h3 {
   }
 }
 
+
+.trend-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  padding: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.trend-chart {
+  width: 100%;
+  min-height: 20rem;
+}
+
+.trend-tooltip {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  padding: 0.75rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.trend-tooltip span {
+  display: block;
+  color: var(--text-muted);
+}
+
+.trend-summary {
+  margin: 1rem 0 0.35rem;
+  font-weight: 700;
+}
+
+.engagement-callout {
+  margin-top: 1.25rem;
+}
+
+.engagement-callout strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
 @media (max-width: 980px) {
   .metric-grid {
     grid-template-columns:
@@ -1035,5 +1080,10 @@ h3 {
   .notice {
     display: none !important;
   }
+.trend-card {
+  box-shadow: none;
+  break-inside: avoid;
+}
+
 
 }

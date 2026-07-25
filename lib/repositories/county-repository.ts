@@ -17,6 +17,7 @@ import type {
   CountyPlacementFlowRecord,
   CountySignalRecord,
   CountySummaryRecord,
+  CountyMonthlyTrendRecord,
 } from "./types";
 
 type DatabaseConnection = ReturnType<typeof getDatabase>;
@@ -43,6 +44,7 @@ type CountySummaryRow = {
   homes_without_recent_activity: number;
   median_observed_active_day_rate: number | null;
   renewals_within_90_days: number;
+  renewals_without_recent_activity: number;
 
   recruitment_level: string;
   recruitment_signal_count: number;
@@ -60,6 +62,14 @@ type CountySignalRow = {
   signal_code: string;
   signal_value: number | null;
   threshold_value: number | null;
+};
+
+type CountyMonthlyTrendRow = {
+  county_slug: string;
+  snapshot_date: string;
+  children_currently_in_care: number;
+  current_foster_homes: number;
+  children_per_current_home: number | null;
 };
 
 type CountyAgeAlignmentRow = {
@@ -111,6 +121,10 @@ export interface CountyRepository {
   listInvestigationQuestionsForCounty(
     countySlug: string,
   ): readonly CountyInvestigationQuestionRecord[];
+
+  listMonthlyTrendsForCounty(
+    countySlug: string,
+  ): readonly CountyMonthlyTrendRecord[];
 }
 
 function parseSqliteBoolean(value: number, fieldName: string): boolean {
@@ -163,6 +177,8 @@ function mapCountySummary(row: CountySummaryRow): CountySummaryRecord {
       row.limited_data,
       "county_summary.limited_data",
     ),
+
+    renewalsWithoutRecentActivity: row.renewals_without_recent_activity,
   };
 }
 
@@ -230,6 +246,7 @@ export class SqliteCountyRepository implements CountyRepository {
             homes_without_recent_activity,
             median_observed_active_day_rate,
             renewals_within_90_days,
+            renewals_without_recent_activity,
             recruitment_level,
             recruitment_signal_count,
             engagement_level,
@@ -270,6 +287,7 @@ export class SqliteCountyRepository implements CountyRepository {
             homes_without_recent_activity,
             median_observed_active_day_rate,
             renewals_within_90_days,
+            renewals_without_recent_activity,
             recruitment_level,
             recruitment_signal_count,
             engagement_level,
@@ -456,6 +474,36 @@ export class SqliteCountyRepository implements CountyRepository {
       displayOrder: row.display_order,
 
       questionText: row.question_text,
+    }));
+  }
+
+  listMonthlyTrendsForCounty(
+    countySlug: string,
+  ): readonly CountyMonthlyTrendRecord[] {
+    const parsedSlug = countySlugSchema.parse(countySlug);
+
+    const rows = this.database
+      .prepare(
+        `
+        SELECT
+            county_slug,
+            snapshot_date,
+            children_currently_in_care,
+            current_foster_homes,
+            children_per_current_home
+        FROM county_monthly_trend
+        WHERE county_slug = ?
+        ORDER BY snapshot_date ASC
+        `,
+      )
+      .all(parsedSlug) as CountyMonthlyTrendRow[];
+
+    return rows.map((row) => ({
+      countySlug: row.county_slug,
+      snapshotDate: row.snapshot_date,
+      childrenCurrentlyInCare: row.children_currently_in_care,
+      currentFosterHomes: row.current_foster_homes,
+      childrenPerCurrentHome: row.children_per_current_home,
     }));
   }
 }

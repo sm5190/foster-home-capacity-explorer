@@ -48,9 +48,10 @@ class CountyAggregate:
 
     homes_with_current_placement: int
     homes_with_recent_activity: int
+    renewals_within_90_days: int
+    renewals_without_recent_activity: int
     homes_without_recent_activity: int
     median_observed_active_day_rate: float | None
-    renewals_within_90_days: int
 
     recruitment_level: str
     recruitment_signal_count: int
@@ -246,6 +247,7 @@ def derive_county_aggregates(
     ] = defaultdict(list)
 
     renewals_by_county: Counter[str] = Counter()
+    renewals_without_recent_activity_by_county: Counter[str] = Counter()
 
     for provider in current_providers:
         county_name = provider.county_provider
@@ -256,6 +258,9 @@ def derive_county_aggregates(
 
         if cutoff <= provider.license_end_date <= renewal_window_end:
             renewals_by_county[county_name] += 1
+
+            if provider.id_provider not in homes_with_recent_activity[county_name]:
+                renewals_without_recent_activity_by_county[county_name] += 1
 
     county_names = {child.removal_county for child in current_children}
 
@@ -347,6 +352,24 @@ def derive_county_aggregates(
 
         engagement_limited = current_homes_count < ENGAGEMENT_MINIMUM_HOMES
 
+        renewal_count = renewals_by_county[county_name]
+        renewal_without_activity_count = renewals_without_recent_activity_by_county[
+            county_name
+        ]
+        homes_without_recent_activity_count = current_homes_count - recent_home_count
+
+        if renewal_without_activity_count > renewal_count:
+            raise ValueError(
+                "Renewing homes without recent activity exceed all "
+                f"renewing homes for {county_name}."
+            )
+
+        if renewal_without_activity_count > homes_without_recent_activity_count:
+            raise ValueError(
+                "Renewing homes without recent activity exceed all "
+                f"homes without recent activity for {county_name}."
+            )
+
         aggregates.append(
             CountyAggregate(
                 county_slug=slugify_county(county_name),
@@ -363,9 +386,10 @@ def derive_county_aggregates(
                 local_placement_rate=(local_placement_rate),
                 homes_with_current_placement=(current_placement_home_count),
                 homes_with_recent_activity=(recent_home_count),
-                homes_without_recent_activity=(current_homes_count - recent_home_count),
+                homes_without_recent_activity=(homes_without_recent_activity_count),
                 median_observed_active_day_rate=(median_active_day_rate),
-                renewals_within_90_days=(renewals_by_county[county_name]),
+                renewals_within_90_days=renewal_count,
+                renewals_without_recent_activity=(renewal_without_activity_count),
                 # Percentile-based classifications are added
                 # during the next ETL stage.
                 recruitment_level=("limited" if recruitment_limited else "review"),

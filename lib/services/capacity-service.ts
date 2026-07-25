@@ -10,6 +10,7 @@ import {
   type CountySignalRecord,
   type CountySummaryRecord,
   type StatewideRepository,
+  type CountyMonthlyTrendRecord,
 } from "../repositories";
 import { RepositoryDataError } from "../repositories/errors";
 import {
@@ -26,6 +27,10 @@ import {
   opportunitySummarySchema,
   publicMetadataSchema,
   statewideSummarySchema,
+  capacityTrendSummarySchema,
+  countyMonthlyTrendPointSchema,
+  type CapacityTrendSummary,
+  type CountyMonthlyTrendPoint,
   type AgeFilter,
   type CountyDetailResponse,
   type CountyListQuery,
@@ -240,6 +245,7 @@ function buildCountySummary(
     homesWithoutRecentActivity: record.homesWithoutRecentActivity,
     medianObservedActiveDayRate: record.medianObservedActiveDayRate,
     renewalsWithin90Days: record.renewalsWithin90Days,
+    renewalsWithoutRecentActivity: record.renewalsWithoutRecentActivity,
 
     recruitment,
     engagement,
@@ -297,6 +303,9 @@ function getNumericSortValue(
     case "renewalsWithin90Days":
       return county.renewalsWithin90Days;
 
+    case "renewalsWithoutRecentActivity":
+      return county.renewalsWithoutRecentActivity;
+
     case "priority":
     case "county":
       return null;
@@ -327,6 +336,48 @@ function comparePriority(
       firstOpportunity.signalCount - secondOpportunity.signalCount;
 
     return query.direction === "asc" ? difference : -difference;
+  }
+
+  if (query.focus === "engagement") {
+    const firstIntersectionShare = calculateShare(
+      first.renewalsWithoutRecentActivity,
+      first.currentFosterHomes,
+    );
+
+    const secondIntersectionShare = calculateShare(
+      second.renewalsWithoutRecentActivity,
+      second.currentFosterHomes,
+    );
+
+    const shareComparison = compareNullableNumbers(
+      firstIntersectionShare,
+      secondIntersectionShare,
+      query.direction,
+    );
+
+    if (shareComparison !== 0) {
+      return shareComparison;
+    }
+
+    if (
+      first.renewalsWithoutRecentActivity !==
+      second.renewalsWithoutRecentActivity
+    ) {
+      const difference =
+        first.renewalsWithoutRecentActivity -
+        second.renewalsWithoutRecentActivity;
+
+      return query.direction === "asc" ? difference : -difference;
+    }
+
+    if (
+      first.homesWithoutRecentActivity !== second.homesWithoutRecentActivity
+    ) {
+      const difference =
+        first.homesWithoutRecentActivity - second.homesWithoutRecentActivity;
+
+      return query.direction === "asc" ? difference : -difference;
+    }
   }
 
   return first.countyName.localeCompare(second.countyName);
@@ -366,6 +417,65 @@ function calculateShare(count: number, denominator: number): number | null {
   }
 
   return count / denominator;
+}
+
+function mapMonthlyTrendPoint(
+  record: CountyMonthlyTrendRecord,
+): CountyMonthlyTrendPoint {
+  return countyMonthlyTrendPointSchema.parse({
+    snapshotDate: record.snapshotDate,
+    childrenCurrentlyInCare: record.childrenCurrentlyInCare,
+    currentFosterHomes: record.currentFosterHomes,
+    childrenPerCurrentHome: record.childrenPerCurrentHome,
+  });
+}
+
+export function buildCapacityTrendSummary(
+  points: readonly CountyMonthlyTrendPoint[],
+): CapacityTrendSummary {
+  const firstPoint = points.at(0);
+  const lastPoint = points.at(-1);
+
+  if (!firstPoint || !lastPoint) {
+    return capacityTrendSummarySchema.parse({
+      twelveMonthsAgoRatio: null,
+      currentRatio: null,
+      absoluteChange: null,
+      percentChange: null,
+      direction: "unavailable",
+    });
+  }
+
+  const previousRatio = firstPoint.childrenPerCurrentHome;
+  const currentRatio = lastPoint.childrenPerCurrentHome;
+
+  if (previousRatio === null || currentRatio === null || previousRatio <= 0) {
+    return capacityTrendSummarySchema.parse({
+      twelveMonthsAgoRatio: previousRatio,
+      currentRatio,
+      absoluteChange: null,
+      percentChange: null,
+      direction: "unavailable",
+    });
+  }
+
+  const absoluteChange = currentRatio - previousRatio;
+  const percentChange = absoluteChange / previousRatio;
+
+  const direction =
+    Math.abs(percentChange) < 0.05
+      ? "stable"
+      : percentChange > 0
+        ? "increasing"
+        : "decreasing";
+
+  return capacityTrendSummarySchema.parse({
+    twelveMonthsAgoRatio: previousRatio,
+    currentRatio,
+    absoluteChange,
+    percentChange,
+    direction,
+  });
 }
 
 export class CapacityService {
@@ -503,6 +613,12 @@ export class CapacityService {
         }),
       );
 
+    const capacityTrend = this.countyRepository
+      .listMonthlyTrendsForCounty(countySlug)
+      .map(mapMonthlyTrendPoint);
+
+    const capacityTrendSummary = buildCapacityTrendSummary(capacityTrend);
+
     const investigationQuestions = this.countyRepository
       .listInvestigationQuestionsForCounty(countySlug)
       .map((row) =>
@@ -517,6 +633,8 @@ export class CapacityService {
       diagnosis: buildCountyDiagnosis(county),
       county,
       placementSettings,
+      capacityTrend,
+      capacityTrendSummary,
       ageAlignment,
       placementFlows,
       investigationQuestions,

@@ -19,6 +19,8 @@ import {
   createCapacityService,
 } from "../../../lib/services";
 
+import { CapacityTrendChart } from "../../../components/capacity-trend-chart";
+
 type CountyPageProps = {
   params: Promise<{
     countySlug: string;
@@ -187,6 +189,30 @@ export default async function CountyPage({ params }: CountyPageProps) {
         </div>
       </section>
 
+      <section
+        className="content-section"
+        aria-labelledby="capacity-pressure-heading"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Capacity pressure over time</p>
+
+            <h2 id="capacity-pressure-heading">Is county pressure changing?</h2>
+
+            <p>
+              Monthly children-per-home snapshots from July 2025 through July
+              2026.
+            </p>
+          </div>
+        </div>
+
+        <CapacityTrendChart
+          countyName={county.countyName}
+          points={brief.capacityTrend}
+          summary={brief.capacityTrendSummary}
+        />
+      </section>
+
       <section aria-labelledby="placement-settings" className="content-section">
         <div className="section-heading">
           <div>
@@ -251,9 +277,8 @@ export default async function CountyPage({ params }: CountyPageProps) {
       <section aria-labelledby="questions" className="content-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Questions to investigate</p>
-
-            <h2 id="questions">What should staff explore next?</h2>
+            <p className="eyebrow">Questions for local review</p>
+            <h2>What should staff explore next?</h2>
           </div>
         </div>
 

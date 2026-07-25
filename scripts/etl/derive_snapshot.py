@@ -9,6 +9,7 @@ from statistics import median
 from scripts.etl.config import (
     ANALYSIS_START_DATE,
     RECENT_ACTIVITY_DAYS,
+    RENEWAL_WINDOW_DAYS,
     REPORTING_CUTOFF_DATE,
 )
 from scripts.etl.load_sources import SourceData
@@ -33,7 +34,8 @@ class StatewideSnapshot:
     homes_with_current_placement: int
     homes_with_recent_activity: int
     homes_without_recent_activity: int
-
+    renewals_within_90_days: int
+    renewals_without_recent_activity: int
     local_foster_placements: int
     out_of_county_foster_placements: int
     local_placement_rate: float | None
@@ -130,6 +132,23 @@ def derive_statewide_snapshot(
         )
     }
 
+    renewal_window_end = cutoff + timedelta(days=RENEWAL_WINDOW_DAYS)
+
+    renewing_provider_ids = {
+        provider.id_provider
+        for provider in current_providers
+        if cutoff <= provider.license_end_date <= renewal_window_end
+    }
+
+    renewing_without_recent_activity_ids = (
+        renewing_provider_ids - homes_with_recent_activity
+    )
+
+    if len(renewing_without_recent_activity_ids) > len(renewing_provider_ids):
+        raise ValueError(
+            "Renewing homes without recent activity exceed all renewing homes."
+        )
+
     observed_active_day_rates: list[float] = []
 
     for provider in current_providers:
@@ -179,6 +198,8 @@ def derive_statewide_snapshot(
         current_foster_homes=len(current_providers),
         homes_with_current_placement=len(homes_with_current_placement),
         homes_with_recent_activity=len(homes_with_recent_activity),
+        renewals_within_90_days=len(renewing_provider_ids),
+        renewals_without_recent_activity=(len(renewing_without_recent_activity_ids)),
         homes_without_recent_activity=(
             len(current_providers) - len(homes_with_recent_activity)
         ),

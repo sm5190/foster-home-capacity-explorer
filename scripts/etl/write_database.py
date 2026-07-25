@@ -27,6 +27,8 @@ from scripts.etl.aggregate_investigation_questions import (
     CountyInvestigationQuestion,
 )
 
+from scripts.etl.aggregate_monthly_trends import CountyMonthlyTrend
+
 
 def calculate_sha256(path: Path) -> str:
     """Return the SHA-256 checksum of a file."""
@@ -88,6 +90,8 @@ def insert_statewide_summary(
             homes_with_current_placement,
             homes_with_recent_activity,
             homes_without_recent_activity,
+            renewals_within_90_days,
+            renewals_without_recent_activity,
             local_foster_placements,
             out_of_county_foster_placements,
             local_placement_rate,
@@ -95,20 +99,8 @@ def insert_statewide_summary(
         )
         VALUES (
             1,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
+            ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?
         )
         """,
         (
@@ -122,6 +114,8 @@ def insert_statewide_summary(
             snapshot.homes_with_current_placement,
             snapshot.homes_with_recent_activity,
             snapshot.homes_without_recent_activity,
+            snapshot.renewals_within_90_days,
+            snapshot.renewals_without_recent_activity,
             snapshot.local_foster_placements,
             snapshot.out_of_county_foster_placements,
             snapshot.local_placement_rate,
@@ -154,6 +148,7 @@ def insert_county_summaries(
             county.homes_without_recent_activity,
             county.median_observed_active_day_rate,
             county.renewals_within_90_days,
+            county.renewals_without_recent_activity,
             county.recruitment_level,
             county.recruitment_signal_count,
             county.engagement_level,
@@ -183,6 +178,7 @@ def insert_county_summaries(
             homes_without_recent_activity,
             median_observed_active_day_rate,
             renewals_within_90_days,
+            renewals_without_recent_activity,
             recruitment_level,
             recruitment_signal_count,
             engagement_level,
@@ -194,6 +190,38 @@ def insert_county_summaries(
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
+        """,
+        rows,
+    )
+
+
+def insert_county_monthly_trends(
+    connection: sqlite3.Connection,
+    trends: tuple[CountyMonthlyTrend, ...],
+) -> None:
+    """Insert monthly county capacity-pressure snapshots."""
+
+    rows = [
+        (
+            trend.county_slug,
+            trend.snapshot_date.isoformat(),
+            trend.children_currently_in_care,
+            trend.current_foster_homes,
+            trend.children_per_current_home,
+        )
+        for trend in trends
+    ]
+
+    connection.executemany(
+        """
+        INSERT INTO county_monthly_trend (
+            county_slug,
+            snapshot_date,
+            children_currently_in_care,
+            current_foster_homes,
+            children_per_current_home
+        )
+        VALUES (?, ?, ?, ?, ?)
         """,
         rows,
     )

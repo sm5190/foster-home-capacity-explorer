@@ -83,33 +83,56 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
 
         <div className="metric-grid">
-          <MetricCard
-            detail="Children whose discharge date is not recorded"
-            label="Children currently in care"
-            value={formatInteger(statewide.childrenCurrentlyInCare)}
-          />
+          {query.focus === "recruitment" ? (
+            <>
+              <MetricCard
+                label="Children currently in care"
+                value={formatInteger(statewide.childrenCurrentlyInCare)}
+              />
 
-          <MetricCard
-            detail="Foster homes licensed on the reporting date"
-            label="Currently licensed foster homes"
-            value={formatInteger(statewide.currentFosterHomes)}
-          />
+              <MetricCard
+                label="Currently licensed foster homes"
+                value={formatInteger(statewide.currentFosterHomes)}
+              />
 
-          <MetricCard
-            detail="Current placements in licensed foster homes"
-            label="Current foster-home placements"
-            value={formatInteger(statewide.currentFosterHomePlacements)}
-          />
+              <MetricCard
+                label="Current foster-home placements"
+                value={formatInteger(statewide.currentFosterHomePlacements)}
+              />
 
-          <MetricCard
-            detail={`${formatInteger(
-              statewide.localFosterPlacements,
-            )} of ${formatInteger(
-              statewide.currentFosterHomePlacements,
-            )} current foster-home placements`}
-            label="Placed in the removal county"
-            value={formatPercentage(statewide.localPlacementRate)}
-          />
+              <MetricCard
+                label="Placed within removal county"
+                value={formatPercentage(statewide.localPlacementRate)}
+                detail={`${formatInteger(
+                  statewide.localFosterPlacements,
+                )} of ${formatInteger(
+                  statewide.currentFosterHomePlacements,
+                )} foster-home placements`}
+              />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                label="Currently licensed foster homes"
+                value={formatInteger(statewide.currentFosterHomes)}
+              />
+
+              <MetricCard
+                label="No recent placement activity"
+                value={formatInteger(statewide.homesWithoutRecentActivity)}
+              />
+
+              <MetricCard
+                label="Renewal dates within 90 days"
+                value={formatInteger(statewide.renewalsWithin90Days)}
+              />
+
+              <MetricCard
+                label="Renewing + no recent activity"
+                value={formatInteger(statewide.renewalsWithoutRecentActivity)}
+              />
+            </>
+          )}
         </div>
       </section>
 
@@ -118,7 +141,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <div>
             <p className="eyebrow">{focusLabel}</p>
 
-            <h2 id="county-priorities">County priority table</h2>
+            <h2>
+              {query.focus === "recruitment"
+                ? "Recruitment priorities by county"
+                : "Retention and engagement priorities by county"}
+            </h2>
 
             <p>
               Showing {focusLabel.toLowerCase()} indicators for{" "}

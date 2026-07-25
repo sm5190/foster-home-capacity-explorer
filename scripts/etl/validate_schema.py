@@ -27,6 +27,7 @@ REQUIRED_TABLES: Final[frozenset[str]] = frozenset(
         "county_placement_flow",
         "county_signal",
         "county_investigation_question",
+        "county_monthly_trend",
     }
 )
 
@@ -36,6 +37,7 @@ REQUIRED_INDEXES: Final[frozenset[str]] = frozenset(
         "idx_county_engagement_priority",
         "idx_county_flow_origin_count",
         "idx_county_age_band",
+        "idx_county_monthly_trend",
     }
 )
 
@@ -63,6 +65,8 @@ REQUIRED_COLUMNS: Final[dict[str, frozenset[str]]] = {
             "out_of_county_foster_placements",
             "local_placement_rate",
             "median_observed_active_day_rate",
+            "renewals_within_90_days",
+            "renewals_without_recent_activity",
         }
     ),
     "county_summary": frozenset(
@@ -89,6 +93,7 @@ REQUIRED_COLUMNS: Final[dict[str, frozenset[str]]] = {
             "limited_data",
             "current_kin_placements",
             "current_nonfamily_placements",
+            "renewals_without_recent_activity",
         }
     ),
     "county_age_alignment": frozenset(
@@ -128,6 +133,15 @@ REQUIRED_COLUMNS: Final[dict[str, frozenset[str]]] = {
             "question_text",
         }
     ),
+    "county_monthly_trend": frozenset(
+        {
+            "county_slug",
+            "snapshot_date",
+            "children_currently_in_care",
+            "current_foster_homes",
+            "children_per_current_home",
+        }
+    ),
 }
 
 REQUIRED_FOREIGN_KEYS: Final[tuple[ForeignKeyExpectation, ...]] = (
@@ -151,6 +165,12 @@ REQUIRED_FOREIGN_KEYS: Final[tuple[ForeignKeyExpectation, ...]] = (
     ),
     ForeignKeyExpectation(
         child_table="county_investigation_question",
+        child_column="county_slug",
+        parent_table="county_summary",
+        parent_column="county_slug",
+    ),
+    ForeignKeyExpectation(
+        child_table="county_monthly_trend",
         child_column="county_slug",
         parent_table="county_summary",
         parent_column="county_slug",

@@ -26,6 +26,8 @@ type StatewideSummaryRow = {
   local_placement_rate: number | null;
 
   median_observed_active_day_rate: number | null;
+  renewals_within_90_days: number;
+  renewals_without_recent_activity: number;
 };
 
 export interface StatewideRepository {
@@ -53,6 +55,8 @@ function mapStatewideSummary(row: StatewideSummaryRow): StatewideSummaryRecord {
     localPlacementRate: row.local_placement_rate,
 
     medianObservedActiveDayRate: row.median_observed_active_day_rate,
+    renewalsWithin90Days: row.renewals_within_90_days,
+    renewalsWithoutRecentActivity: row.renewals_without_recent_activity,
   };
 }
 
@@ -77,7 +81,9 @@ export class SqliteStatewideRepository implements StatewideRepository {
             local_foster_placements,
             out_of_county_foster_placements,
             local_placement_rate,
-            median_observed_active_day_rate
+            median_observed_active_day_rate,
+            renewals_within_90_days,
+            renewals_without_recent_activity,
           FROM statewide_summary
           WHERE id = 1
         `,

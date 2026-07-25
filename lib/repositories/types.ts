@@ -20,6 +20,8 @@ export type StatewideSummaryRecord = {
   homesWithCurrentPlacement: number;
   homesWithRecentActivity: number;
   homesWithoutRecentActivity: number;
+  renewalsWithin90Days: number;
+  renewalsWithoutRecentActivity: number;
 
   localFosterPlacements: number;
   outOfCountyFosterPlacements: number;
@@ -50,6 +52,7 @@ export type CountySummaryRecord = {
   homesWithoutRecentActivity: number;
   medianObservedActiveDayRate: number | null;
   renewalsWithin90Days: number;
+  renewalsWithoutRecentActivity: number;
 
   recruitmentLevel: OpportunityLevel;
   recruitmentSignalCount: number;
@@ -59,6 +62,14 @@ export type CountySummaryRecord = {
 
   primaryOpportunity: PrimaryOpportunity;
   limitedData: boolean;
+};
+
+export type CountyMonthlyTrendRecord = {
+  countySlug: string;
+  snapshotDate: string;
+  childrenCurrentlyInCare: number;
+  currentFosterHomes: number;
+  childrenPerCurrentHome: number | null;
 };
 
 export type CountySignalRecord = {
