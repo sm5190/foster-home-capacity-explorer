@@ -12,7 +12,7 @@ import {
 } from "../../lib/schemas";
 
 const metadataFixture = {
-  schemaVersion: "1.2",
+  schemaVersion: "1.3",
   reportingCutoff: "2026-07-01",
   observationStart: "2022-01-01",
   buildStatus: "complete" as const,
@@ -49,6 +49,7 @@ const countyFixture = {
   homesWithoutRecentActivity: 2,
   medianObservedActiveDayRate: 0.7,
   renewalsWithin90Days: 4,
+  renewalsWithoutRecentActivity: 0,
 
   recruitment: opportunityFixture,
   engagement: {
@@ -75,6 +76,8 @@ const statewideFixture = {
   homesWithCurrentPlacement: 2_733,
   homesWithRecentActivity: 3_170,
   homesWithoutRecentActivity: 225,
+  renewalsWithin90Days: 0,
+  renewalsWithoutRecentActivity: 0,
 
   localFosterPlacements: 1_519,
   outOfCountyFosterPlacements: 2_824,
@@ -333,6 +336,93 @@ describe("API response contracts", () => {
             "What cross-county coordination should staff investigate?",
         },
       ],
+      capacityTrend: [
+        {
+          snapshotDate: "2025-07-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2025-08-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2025-09-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2025-10-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2025-11-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2025-12-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-01-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-02-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-03-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-04-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-05-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-06-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+        {
+          snapshotDate: "2026-07-01",
+          childrenCurrentlyInCare: 10,
+          currentFosterHomes: 2,
+          childrenPerCurrentHome: 5,
+        },
+      ],
+      capacityTrendSummary: {
+        twelveMonthsAgoRatio: 5,
+        currentRatio: 5,
+        absoluteChange: 0,
+        percentChange: 0,
+        direction: "stable",
+      },
     });
 
     expect(parsed.county.countySlug).toBe("example");
