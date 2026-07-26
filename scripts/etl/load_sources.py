@@ -54,6 +54,24 @@ RESOURCE_TYPES: Final = {
     "nonfamily",
 }
 
+COUNTY_NAME_ALIASES: Final[dict[str, str]] = {
+    "Vermillion": "Vermilion",
+}
+
+
+def canonicalize_county_name(value: str) -> str:
+    """Return a validated canonical Illinois county name."""
+
+    stripped_value = value.strip()
+
+    if not stripped_value:
+        raise ValueError("County name cannot be blank.")
+
+    return COUNTY_NAME_ALIASES.get(
+        stripped_value,
+        stripped_value,
+    )
+
 
 @dataclass(frozen=True, slots=True)
 class ChildRecord:
@@ -263,7 +281,9 @@ def load_sources(
                 row["most_recent_age"],
                 "child.most_recent_age",
             ),
-            removal_county=row["removal_county"],
+            removal_county=canonicalize_county_name(
+                row["removal_county"],
+            ),
         )
         for row in child_rows
     )
@@ -292,8 +312,12 @@ def load_sources(
                     row["placement_index"],
                     "placement.placement_index",
                 ),
-                removal_county=row["removal_county"],
-                placement_county=row["placement_county"],
+                removal_county=canonicalize_county_name(
+                    row["removal_county"],
+                ),
+                placement_county=canonicalize_county_name(
+                    row["placement_county"],
+                ),
                 id_provider=_optional_string(row["id_provider"]),
                 placement_length=_parse_int(
                     row["placement_length"],
@@ -313,7 +337,9 @@ def load_sources(
                 row["license_end_date"],
                 "provider.license_end_date",
             ),
-            county_provider=row["county_provider"],
+            county_provider=canonicalize_county_name(
+                row["county_provider"],
+            ),
             n_days_licensed=_parse_int(
                 row["n_days_licensed"],
                 "provider.n_days_licensed",

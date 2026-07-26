@@ -52,7 +52,7 @@ describe("runtime SQLite database", () => {
     const metadata = getDatabaseMetadata();
 
     expect(metadata).toEqual({
-      schemaVersion: "1.2",
+      schemaVersion: "1.3",
       reportingCutoff: "2026-07-01",
       observationStart: "2022-01-01",
       buildStatus: "complete",
@@ -84,7 +84,7 @@ describe("runtime SQLite database", () => {
     });
   });
 
-  it("contains all 103 county summary rows", () => {
+  it("contains all 102 county summary rows", () => {
     const database = getDatabase();
 
     const result = database
@@ -96,7 +96,7 @@ describe("runtime SQLite database", () => {
       )
       .get() as CountRow | undefined;
 
-    expect(result?.row_count).toBe(103);
+    expect(result?.row_count).toBe(102);
   });
 
   it("reads county placement-setting aggregates", () => {

@@ -58,7 +58,7 @@ def test_database_contains_required_metadata(
     assert len(metadata["source_provider_sha256"]) == 64
 
     assert metadata["county_summary_rows"] == str(EXPECTED_COUNTY_ROWS)
-    assert metadata["county_signal_rows"] == "117"
+    assert metadata["county_signal_rows"] == "116"
     assert metadata["county_age_alignment_rows"] == str(
         EXPECTED_COUNTY_ROWS * len(ALL_AGE_BANDS)
     )
@@ -68,9 +68,9 @@ def test_database_contains_required_metadata(
 
     assert metadata["percentile_method"] == ("linear_interpolation_position_(n-1)*p")
 
-    assert metadata["eligible_children_per_current_home_count"] == "103"
+    assert metadata["eligible_children_per_current_home_count"] == "102"
     assert metadata["eligible_out_of_county_foster_rate_count"] == "31"
-    assert metadata["eligible_engagement_count"] == "103"
+    assert metadata["eligible_engagement_count"] == "102"
 
     assert metadata["age_unknown_eligible_counties"] == "0"
     assert metadata["age_unknown_p75_threshold"] == "not_applicable"
@@ -233,7 +233,7 @@ def test_database_populates_classifications_and_signals(
     ).fetchall()
 
     assert signal_count is not None
-    assert signal_count["signal_count"] == 117
+    assert signal_count["signal_count"] == 116
 
     assert cook is not None
     assert cook["recruitment_level"] == "higher"
@@ -249,7 +249,7 @@ def test_database_populates_classifications_and_signals(
     }
 
     assert {row["recruitment_level"]: row["county_count"] for row in level_counts} == {
-        "limited": 72,
+        "limited": 71,
         "possible": 21,
         "higher": 6,
         "review": 4,
@@ -650,7 +650,7 @@ def test_database_populates_investigation_questions(
         """
     ).fetchall()
 
-    assert len(county_rows) == 103
+    assert len(county_rows) == EXPECTED_COUNTY_ROWS
 
     for row in county_rows:
         question_count = row["question_count"]

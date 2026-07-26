@@ -27,7 +27,7 @@ describe("API route handlers", () => {
     expect(body).toEqual({
       status: "ok",
       service: "foster-home-capacity-explorer",
-      schemaVersion: "1.2",
+      schemaVersion: "1.3",
       dataCutoff: "2026-07-01",
       observationStart: "2022-01-01",
       buildStatus: "complete",
@@ -51,9 +51,9 @@ describe("API route handlers", () => {
       direction: "desc",
     });
 
-    expect(body.counties).toHaveLength(103);
+    expect(body.counties).toHaveLength(102);
 
-    expect(body.totalCount).toBe(103);
+    expect(body.totalCount).toBe(102);
   });
 
   it("filters counties using validated query parameters", async () => {
@@ -90,7 +90,7 @@ describe("API route handlers", () => {
 
     expect(body.query.focus).toBe("engagement");
 
-    expect(body.totalCount).toBe(103);
+    expect(body.totalCount).toBe(102);
   });
 
   it("rejects invalid county query values", async () => {

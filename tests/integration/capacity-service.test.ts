@@ -17,7 +17,7 @@ describe("capacity service", () => {
     const response = service.getStatewidePriorities();
 
     expect(response.metadata).toEqual({
-      schemaVersion: "1.2",
+      schemaVersion: "1.3",
       reportingCutoff: "2026-07-01",
       observationStart: "2022-01-01",
       buildStatus: "complete",
@@ -31,9 +31,9 @@ describe("capacity service", () => {
       direction: "desc",
     });
 
-    expect(response.counties).toHaveLength(103);
+    expect(response.counties).toHaveLength(102);
 
-    expect(response.totalCount).toBe(103);
+    expect(response.totalCount).toBe(102);
   });
 
   it("filters county priorities by county name", () => {

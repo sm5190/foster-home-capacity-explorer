@@ -46,12 +46,12 @@ def test_thresholds_match_current_sources(
 
     thresholds = classification.thresholds
 
-    assert thresholds.children_per_current_home_p75 == pytest.approx(1.669761273209549)
+    assert thresholds.children_per_current_home_p75 == pytest.approx(1.6377171215880895)
 
     assert thresholds.out_of_county_foster_rate_p75 == pytest.approx(0.7788220551378446)
 
     assert thresholds.homes_without_recent_activity_share_p75 == pytest.approx(
-        0.09032634032634032
+        0.09061771561771562
     )
 
     assert thresholds.median_observed_active_day_rate_p25 == pytest.approx(
@@ -60,11 +60,11 @@ def test_thresholds_match_current_sources(
 
     assert thresholds.renewals_within_90_days_share_p75 == pytest.approx(0.5)
 
-    assert thresholds.children_per_current_home_eligible_count == 103
+    assert thresholds.children_per_current_home_eligible_count == 102
 
     assert thresholds.out_of_county_foster_rate_eligible_count == 31
 
-    assert thresholds.engagement_eligible_count == 103
+    assert thresholds.engagement_eligible_count == 102
 
 
 def test_classification_counts(
@@ -85,7 +85,7 @@ def test_classification_counts(
     )
 
     assert recruitment_levels == {
-        "limited": 72,
+        "limited": 71,
         "possible": 21,
         "higher": 6,
         "review": 4,
@@ -93,15 +93,15 @@ def test_classification_counts(
 
     assert engagement_levels == {
         "review": 42,
-        "possible": 40,
+        "possible": 39,
         "higher": 21,
     }
 
     assert primary_opportunities == {
-        "engagement": 51,
+        "engagement": 50,
         "review": 28,
-        "recruitment": 16,
-        "both": 8,
+        "recruitment": 15,
+        "both": 9,
     }
 
 
@@ -115,8 +115,8 @@ def test_signal_counts_match_county_rows(
         for county in classification.counties
     )
 
-    assert len(classification.signals) == 117
-    assert stored_signal_count == 117
+    assert len(classification.signals) == 116
+    assert stored_signal_count == 116
 
     signal_codes = Counter(signal.signal_code for signal in classification.signals)
 
@@ -125,7 +125,7 @@ def test_signal_counts_match_county_rows(
         "high_out_of_county_foster_rate": 8,
         "high_share_without_recent_activity": 26,
         "low_median_observed_active_day_rate": 26,
-        "high_renewal_share_90_days": 31,
+        "high_renewal_share_90_days": 30,
     }
 
 
@@ -174,18 +174,25 @@ def test_schuyler_retains_limited_recruitment_label(
     assert schuyler.primary_opportunity == "review"
 
 
-def test_vermillion_is_engagement_led(
+def test_vermilion_uses_canonical_label_and_classification(
     classification,
 ) -> None:
-    """The preserved alternate county label remains classifiable."""
+    """Classify the combined canonical Vermilion county row."""
 
-    vermillion = next(
+    vermilion = next(
         county
         for county in classification.counties
-        if county.county_name == "Vermillion"
+        if county.county_name == "Vermilion"
     )
 
-    assert vermillion.recruitment_level == "limited"
-    assert vermillion.engagement_level == "higher"
-    assert vermillion.engagement_signal_count == 2
-    assert vermillion.primary_opportunity == "engagement"
+    assert vermilion.county_slug == "vermilion"
+
+    assert vermilion.recruitment_level == "higher"
+    assert vermilion.recruitment_signal_count == 2
+
+    assert vermilion.engagement_level == "higher"
+    assert vermilion.engagement_signal_count == 2
+
+    assert vermilion.primary_opportunity == "both"
+
+    assert all(county.county_name != "Vermillion" for county in classification.counties)

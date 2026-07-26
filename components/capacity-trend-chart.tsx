@@ -35,6 +35,30 @@ function formatMonth(value: string): string {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function getRatioDecimalPlaces(...values: Array<number | null>): number {
+  const availableValues = values.filter(
+    (value): value is number => value !== null,
+  );
+
+  if (availableValues.length === 0) {
+    return 1;
+  }
+
+  const largestAbsoluteValue = Math.max(
+    ...availableValues.map((value) => Math.abs(value)),
+  );
+
+  return largestAbsoluteValue < 1 ? 2 : 1;
+}
+
+function formatRatio(value: number | null, decimalPlaces: number): string {
+  if (value === null) {
+    return "Not available";
+  }
+
+  return formatDecimal(value, decimalPlaces);
+}
+
 function buildSummaryText(
   countyName: string,
   summary: CapacityTrendSummary,
@@ -59,31 +83,28 @@ function buildSummaryText(
     );
   }
 
-  const directionText =
-    direction === "stable"
-      ? "was broadly stable"
-      : direction === "increasing"
-        ? "increased"
-        : "decreased";
-
-  const signedChange =
-    absoluteChange > 0
-      ? `+${formatDecimal(absoluteChange, 1)}`
-      : formatDecimal(absoluteChange, 1);
+  const decimalPlaces = getRatioDecimalPlaces(
+    twelveMonthsAgoRatio,
+    currentRatio,
+  );
 
   const percentageChange = formatPercentage(Math.abs(percentChange));
 
   const changeDescription =
     direction === "stable"
-      ? `changed by ${percentageChange}`
-      : `${directionText} by ${percentageChange}`;
+      ? `remained broadly stable, changing by ${percentageChange}`
+      : direction === "increasing"
+        ? `increased by ${percentageChange}`
+        : `decreased by ${percentageChange}`;
 
   return (
     `${countyName} County's children-per-home pressure ` +
     `${changeDescription}, from ` +
-    `${formatDecimal(twelveMonthsAgoRatio, 1)} to ` +
-    `${formatDecimal(currentRatio, 1)} children per licensed ` +
-    `home over the past 12 months.`
+    `${formatRatio(twelveMonthsAgoRatio, decimalPlaces)} to ` +
+    `${formatRatio(
+      currentRatio,
+      decimalPlaces,
+    )} children per licensed home over the past 12 months.`
   );
 }
 
@@ -94,32 +115,51 @@ export function CapacityTrendChart({
 }: CapacityTrendChartProps) {
   const summaryText = buildSummaryText(countyName, summary);
 
+  const yAxisDecimalPlaces = getRatioDecimalPlaces(
+    ...points.map((point) => point.childrenPerCurrentHome),
+  );
+
   return (
     <div className="trend-card">
-      <div className="trend-chart" role="img" aria-label={summaryText}>
-        <ResponsiveContainer width="100%" height={320}>
+      <div aria-label={summaryText} className="trend-chart" role="img">
+        <ResponsiveContainer height={320} width="100%">
           <LineChart
             data={points}
             margin={{
               top: 12,
-              right: 20,
+              right: 36,
               bottom: 12,
-              left: 0,
+              left: 4,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
 
             <XAxis
               dataKey="snapshotDate"
-              tickFormatter={formatMonth}
+              height={48}
               interval={0}
               minTickGap={0}
+              padding={{
+                left: 8,
+                right: 16,
+              }}
+              tick={{
+                fontSize: 12,
+              }}
+              tickFormatter={formatMonth}
               tickMargin={10}
             />
 
             <YAxis
-              width={56}
-              tickFormatter={(value: number) => formatDecimal(value, 1)}
+              allowDecimals
+              domain={[0, "auto"]}
+              tick={{
+                fontSize: 12,
+              }}
+              tickFormatter={(value: number) =>
+                value.toFixed(yAxisDecimalPlaces)
+              }
+              width={52}
             />
 
             <Tooltip
@@ -131,13 +171,20 @@ export function CapacityTrendChart({
                   return null;
                 }
 
+                const pointDecimalPlaces = getRatioDecimalPlaces(
+                  point.childrenPerCurrentHome,
+                );
+
                 return (
                   <div className="trend-tooltip">
                     <strong>{formatMonth(point.snapshotDate)}</strong>
 
                     <span>
-                      {formatDecimal(point.childrenPerCurrentHome, 1)} children
-                      per licensed home
+                      {formatRatio(
+                        point.childrenPerCurrentHome,
+                        pointDecimalPlaces,
+                      )}{" "}
+                      children per licensed home
                     </span>
 
                     <span>
@@ -154,19 +201,21 @@ export function CapacityTrendChart({
             />
 
             <Line
-              type="monotone"
+              activeDot={{
+                r: 6,
+              }}
+              connectNulls={false}
               dataKey="childrenPerCurrentHome"
-              name="Children per licensed home"
-              stroke="var(--primary)"
-              strokeWidth={3}
               dot={{
                 r: 4,
                 fill: "var(--surface)",
                 strokeWidth: 2,
               }}
-              activeDot={{ r: 6 }}
-              connectNulls={false}
               isAnimationActive={false}
+              name="Children per licensed home"
+              stroke="var(--primary)"
+              strokeWidth={3}
+              type="monotone"
             />
           </LineChart>
         </ResponsiveContainer>

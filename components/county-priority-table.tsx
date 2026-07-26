@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 
 import { buildCountyListHref, getNextSortDirection } from "../lib/county-query";
@@ -14,10 +15,14 @@ import type {
 } from "../lib/schemas";
 import { OpportunityBadge } from "./opportunity-badge";
 
+import { getOpportunitySummary } from "../lib/opportunity-copy";
+
 type CountyPriorityTableProps = {
   counties: readonly CountySummary[];
   focus: Focus;
   query: CountyListQuery;
+  activeCountySlug?: string | null;
+  onCountyActivate?: (countySlug: string) => void;
 };
 
 type SortHeaderProps = {
@@ -65,6 +70,8 @@ export function CountyPriorityTable({
   counties,
   focus,
   query,
+  activeCountySlug = null,
+  onCountyActivate,
 }: CountyPriorityTableProps) {
   const isRecruitment = focus === "recruitment";
 
@@ -179,7 +186,21 @@ export function CountyPriorityTable({
               .join("; ");
 
             return (
-              <tr key={county.countySlug}>
+              <tr
+                className={
+                  activeCountySlug === county.countySlug
+                    ? "is-active"
+                    : undefined
+                }
+                id={`county-row-${county.countySlug}`}
+                key={county.countySlug}
+                onFocusCapture={() => {
+                  onCountyActivate?.(county.countySlug);
+                }}
+                onMouseEnter={() => {
+                  onCountyActivate?.(county.countySlug);
+                }}
+              >
                 <th scope="row">
                   <Link
                     className="county-link"
@@ -245,10 +266,7 @@ export function CountyPriorityTable({
                   <OpportunityBadge focus={focus} level={opportunity.level} />
 
                   <p className="table-evidence">
-                    {evidence ||
-                      `No statewide ${
-                        isRecruitment ? "recruitment" : "engagement"
-                      } threshold was met.`}
+                    {getOpportunitySummary(focus, opportunity.level)}
                   </p>
                 </td>
               </tr>
