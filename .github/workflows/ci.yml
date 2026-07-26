@@ -1,0 +1,372 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Data and web quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Check Python formatting
+        run: uv run ruff format --check scripts tests
+
+      - name: Lint Python
+        run: uv run ruff check scripts tests
+
+      - name: Build aggregate database
+        run: uv run python -m scripts.build_database
+
+      - name: Run Python tests
+        run: uv run pytest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Build Illinois map data
+        run: npm run map:build
+
+      - name: Validate aggregate and map contracts
+        run: |
+          uv run python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import sqlite3
+          from pathlib import Path
+
+          database_path = Path(
+              "data/generated/foster_capacity.db"
+          )
+
+          map_path = Path(
+              "lib/map/illinois-counties.json"
+          )
+
+          if not database_path.is_file():
+              raise SystemExit(
+                  "Generated aggregate database is missing."
+              )
+
+          if not map_path.is_file():
+              raise SystemExit(
+                  "Generated Illinois map asset is missing."
+              )
+
+          connection = sqlite3.connect(database_path)
+
+          try:
+              integrity_result = connection.execute(
+                  "PRAGMA integrity_check"
+              ).fetchone()
+
+              if integrity_result != ("ok",):
+                  raise SystemExit(
+                      "SQLite integrity check failed: "
+                      f"{integrity_result!r}"
+                  )
+
+              foreign_key_errors = connection.execute(
+                  "PRAGMA foreign_key_check"
+              ).fetchall()
+
+              if foreign_key_errors:
+                  raise SystemExit(
+                      "SQLite foreign-key validation failed: "
+                      f"{foreign_key_errors!r}"
+                  )
+
+              metadata = dict(
+                  connection.execute(
+                      """
+                      SELECT
+                          key,
+                          value
+                      FROM metadata
+                      """
+                  ).fetchall()
+              )
+
+              county_count = connection.execute(
+                  """
+                  SELECT COUNT(*)
+                  FROM county_summary
+                  """
+              ).fetchone()[0]
+
+              trend_count = connection.execute(
+                  """
+                  SELECT COUNT(*)
+                  FROM county_monthly_trend
+                  """
+              ).fetchone()[0]
+
+              database_county_slugs = {
+                  row[0]
+                  for row in connection.execute(
+                      """
+                      SELECT county_slug
+                      FROM county_summary
+                      """
+                  ).fetchall()
+              }
+          finally:
+              connection.close()
+
+          if metadata.get("schema_version") != "1.3":
+              raise SystemExit(
+                  "Unexpected schema version: "
+                  f"{metadata.get('schema_version')!r}"
+              )
+
+          if metadata.get("reporting_cutoff") != "2026-07-01":
+              raise SystemExit(
+                  "Unexpected reporting cutoff: "
+                  f"{metadata.get('reporting_cutoff')!r}"
+              )
+
+          if metadata.get("build_status") != "complete":
+              raise SystemExit(
+                  "Database build is not marked complete."
+              )
+
+          if county_count != 102:
+              raise SystemExit(
+                  "Unexpected county count. "
+                  f"Expected 102; found {county_count}."
+              )
+
+          if trend_count != 1326:
+              raise SystemExit(
+                  "Unexpected monthly-trend row count. "
+                  f"Expected 1326; found {trend_count}."
+              )
+
+          map_data = json.loads(
+              map_path.read_text(encoding="utf-8")
+          )
+
+          features = map_data.get("features")
+
+          if not isinstance(features, list):
+              raise SystemExit(
+                  "Map asset does not contain a feature list."
+              )
+
+          if len(features) != 102:
+              raise SystemExit(
+                  "Unexpected Illinois map feature count. "
+                  f"Expected 102; found {len(features)}."
+              )
+
+          map_county_slugs = {
+              feature["properties"]["countySlug"]
+              for feature in features
+          }
+
+          if len(map_county_slugs) != 102:
+              raise SystemExit(
+                  "Map contains duplicate county slugs."
+              )
+
+          missing_from_map = sorted(
+              database_county_slugs - map_county_slugs
+          )
+
+          missing_from_database = sorted(
+              map_county_slugs - database_county_slugs
+          )
+
+          if missing_from_map or missing_from_database:
+              raise SystemExit(
+                  "Map and database county coverage differ.\n"
+                  f"Missing from map: {missing_from_map}\n"
+                  "Missing from database: "
+                  f"{missing_from_database}"
+              )
+
+          if "vermilion" not in map_county_slugs:
+              raise SystemExit(
+                  "Canonical Vermilion county is missing."
+              )
+
+          if "vermillion" in map_county_slugs:
+              raise SystemExit(
+                  "Noncanonical Vermillion spelling remains."
+              )
+
+          print("Aggregate and map contracts passed.")
+          print(f"Schema version: {metadata['schema_version']}")
+          print(f"County rows: {county_count}")
+          print(f"Monthly trend rows: {trend_count}")
+          print(f"Map features: {len(features)}")
+          PY
+
+      - name: Run complete web quality gate
+        run: npm run check
+
+      - name: Check whitespace errors
+        run: git diff --check
+
+  container:
+    name: Container smoke test
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Rebuild aggregate database
+        run: uv run python -m scripts.build_database
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Rebuild Illinois map data
+        run: npm run map:build
+
+      - name: Build production Docker image
+        run: |
+          docker build \
+            --tag foster-home-capacity-explorer:ci \
+            .
+
+      - name: Start production container
+        run: |
+          docker run \
+            --detach \
+            --name foster-home-capacity-explorer-ci \
+            --publish 3000:3000 \
+            foster-home-capacity-explorer:ci
+
+      - name: Wait for healthy container
+        run: |
+          for attempt in $(seq 1 30); do
+            status="$(
+              docker inspect \
+                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' \
+                foster-home-capacity-explorer-ci
+            )"
+
+            echo "Health attempt ${attempt}: ${status}"
+
+            if [ "${status}" = "healthy" ]; then
+              exit 0
+            fi
+
+            if [ "${status}" = "unhealthy" ]; then
+              docker logs foster-home-capacity-explorer-ci
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          echo "Container did not become healthy in time."
+          docker logs foster-home-capacity-explorer-ci
+          exit 1
+
+      - name: Run production smoke tests
+        env:
+          SMOKE_BASE_URL: http://127.0.0.1:3000
+        run: npm run smoke
+
+      - name: Verify aggregate-only runtime data
+        run: |
+          runtime_files="$(
+            docker exec \
+              foster-home-capacity-explorer-ci \
+              sh -lc \
+              "find /app/data -type f -print | sort"
+          )"
+
+          echo "Runtime data files:"
+          echo "${runtime_files}"
+
+          expected_file="/app/data/generated/foster_capacity.db"
+
+          if [ "${runtime_files}" != "${expected_file}" ]; then
+            echo "Unexpected files were included in the runtime image."
+            exit 1
+          fi
+
+      - name: Verify non-root runtime user
+        run: |
+          runtime_user="$(
+            docker exec \
+              foster-home-capacity-explorer-ci \
+              sh -lc "id -un"
+          )"
+
+          echo "Runtime user: ${runtime_user}"
+
+          if [ "${runtime_user}" != "nextjs" ]; then
+            echo "Container is not running as the nextjs user."
+            exit 1
+          fi
+
+      - name: Show container logs after failure
+        if: failure()
+        run: |
+          docker logs foster-home-capacity-explorer-ci || true
+
+      - name: Remove test container
+        if: always()
+        run: |
+          docker rm \
+            --force \
+            foster-home-capacity-explorer-ci \
+            2>/dev/null || true
