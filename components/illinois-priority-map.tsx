@@ -85,7 +85,13 @@ const MAP_FILL_COLORS: Record<OpportunityLevel, string> = {
   review: "#8fb6f5",
   limited: "#d8e0ea",
 };
-const OPPORTUNITY_LEVELS = ["higher", "possible", "review", "limited"] as const;
+
+const OPPORTUNITY_LEVELS: readonly OpportunityLevel[] = [
+  "higher",
+  "possible",
+  "review",
+  "limited",
+];
 
 function getOpportunity(county: CountySummary, focus: Focus) {
   return focus === "recruitment" ? county.recruitment : county.engagement;
@@ -116,21 +122,25 @@ function MapMetrics({
       <dl className="county-map__metrics">
         <div>
           <dt>Children currently in care</dt>
+
           <dd>{formatInteger(county.childrenCurrentlyInCare)}</dd>
         </div>
 
         <div>
           <dt>Current foster homes</dt>
+
           <dd>{formatInteger(county.currentFosterHomes)}</dd>
         </div>
 
         <div>
           <dt>Children per current home</dt>
+
           <dd>{formatDecimal(county.childrenPerCurrentHome, 1)}</dd>
         </div>
 
         <div>
           <dt>Placed near home community</dt>
+
           <dd>{formatPercentage(county.localPlacementRate)}</dd>
         </div>
       </dl>
@@ -141,21 +151,25 @@ function MapMetrics({
     <dl className="county-map__metrics">
       <div>
         <dt>Current foster homes</dt>
+
         <dd>{formatInteger(county.currentFosterHomes)}</dd>
       </div>
 
       <div>
         <dt>No recent activity</dt>
+
         <dd>{formatInteger(county.homesWithoutRecentActivity)}</dd>
       </div>
 
       <div>
         <dt>Renewing within 90 days</dt>
+
         <dd>{formatInteger(county.renewalsWithin90Days)}</dd>
       </div>
 
       <div>
         <dt>Renewing plus no activity</dt>
+
         <dd>{formatInteger(county.renewalsWithoutRecentActivity)}</dd>
       </div>
     </dl>
@@ -182,6 +196,33 @@ export function IllinoisPriorityMap({
     [counties],
   );
 
+  const opportunityCounts = useMemo(() => {
+    const counts: Record<OpportunityLevel, number> = {
+      higher: 0,
+      possible: 0,
+      review: 0,
+      limited: 0,
+    };
+
+    for (const county of counties) {
+      const opportunity = getOpportunity(county, focus);
+
+      counts[opportunity.level] += 1;
+    }
+
+    return counts;
+  }, [counties, focus]);
+
+  const visibleOpportunityLevels = OPPORTUNITY_LEVELS.filter(
+    (level) => opportunityCounts[level] > 0,
+  );
+
+  const effectiveSelectedOpportunityLevel =
+    selectedOpportunityLevel !== null &&
+    opportunityCounts[selectedOpportunityLevel] > 0
+      ? selectedOpportunityLevel
+      : null;
+
   const normalizedSearch = search.trim().toLowerCase();
 
   const activeCounty =
@@ -189,13 +230,9 @@ export function IllinoisPriorityMap({
       ? null
       : (countiesBySlug.get(activeCountySlug) ?? null);
 
-  const higherCount = counties.filter(
-    (county) => getOpportunity(county, focus).level === "higher",
-  ).length;
+  const higherCount = opportunityCounts.higher;
 
-  const possibleCount = counties.filter(
-    (county) => getOpportunity(county, focus).level === "possible",
-  ).length;
+  const possibleCount = opportunityCounts.possible;
 
   const focusLabel =
     focus === "recruitment"
@@ -211,7 +248,7 @@ export function IllinoisPriorityMap({
 
   function toggleOpportunityLevel(level: OpportunityLevel) {
     setSelectedOpportunityLevel(
-      selectedOpportunityLevel === level ? null : level,
+      effectiveSelectedOpportunityLevel === level ? null : level,
     );
   }
 
@@ -260,8 +297,8 @@ export function IllinoisPriorityMap({
                 county.countyName.toLowerCase().includes(normalizedSearch);
 
               const isOpportunityMatch =
-                selectedOpportunityLevel === null ||
-                opportunity.level === selectedOpportunityLevel;
+                effectiveSelectedOpportunityLevel === null ||
+                opportunity.level === effectiveSelectedOpportunityLevel;
 
               const isDimmed = !isSearchMatch || !isOpportunityMatch;
 
@@ -409,8 +446,8 @@ export function IllinoisPriorityMap({
         className="county-map__legend"
         role="group"
       >
-        {OPPORTUNITY_LEVELS.map((level) => {
-          const isSelected = selectedOpportunityLevel === level;
+        {visibleOpportunityLevels.map((level) => {
+          const isSelected = effectiveSelectedOpportunityLevel === level;
 
           return (
             <button
@@ -435,12 +472,17 @@ export function IllinoisPriorityMap({
                 }}
               />
 
-              {LEVEL_LABELS[level]}
+              <span>
+                {LEVEL_LABELS[level]}{" "}
+                <span aria-hidden="true">
+                  ({formatInteger(opportunityCounts[level])})
+                </span>
+              </span>
             </button>
           );
         })}
 
-        {selectedOpportunityLevel !== null ? (
+        {effectiveSelectedOpportunityLevel !== null ? (
           <button
             className="county-map__legend-clear"
             onClick={() => {
@@ -452,6 +494,13 @@ export function IllinoisPriorityMap({
           </button>
         ) : null}
       </div>
+
+      {focus === "engagement" && opportunityCounts.limited === 0 ? (
+        <p className="method-note">
+          All counties have enough current foster homes for the engagement
+          comparison, so none are classified as Limited data in this snapshot.
+        </p>
+      ) : null}
 
       <p className="method-note">
         County boundaries are displayed for geographic orientation. Opportunity

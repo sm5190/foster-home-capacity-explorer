@@ -11,7 +11,10 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "map:build": "node scripts/build-illinois-map.mjs"
+    "map:build": "node scripts/build-illinois-map.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "docker:build": "docker build --tag foster-home-capacity-explorer .",
+    "docker:run": "docker run --rm --publish 3000:3000 --name foster-home-capacity-explorer foster-home-capacity-explorer"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",

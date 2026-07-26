@@ -22,11 +22,11 @@
   --danger: #813c38;
   --danger-soft: #f4e5e3;
 
---map-higher: #e78aa0;
---map-possible: #f3c77a;
---map-review: #8fb6f5;
---map-limited: #d8e0ea;
---map-boundary: #ffffff;
+  --map-higher: #e78aa0;
+  --map-possible: #f3c77a;
+  --map-review: #8fb6f5;
+  --map-limited: #d8e0ea;
+  --map-boundary: #ffffff;
 
   --radius-small: 0.45rem;
   --radius-medium: 0.8rem;
@@ -731,6 +731,10 @@ h3 {
   gap: 1rem;
 }
 
+.filter-grid--engagement {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .filter-field {
   min-width: 0;
 }
@@ -1145,7 +1149,6 @@ h3 {
   border-color: #8b99ab;
 }
 
-
 @media (max-width: 980px) {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1164,10 +1167,10 @@ h3 {
     justify-content: flex-start;
   }
 
-  .filter-grid {
+  .filter-grid,
+  .filter-grid--engagement {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
   .loading-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1233,7 +1236,8 @@ h3 {
   }
 
   .filter-grid,
-  .loading-card-grid {
+  .loading-card-grid,
+  .filter-grid--engagement {
     grid-template-columns: 1fr;
   }
 
