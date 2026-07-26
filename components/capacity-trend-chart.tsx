@@ -66,11 +66,6 @@ function buildSummaryText(
         ? "increased"
         : "decreased";
 
-  const signedChange =
-    absoluteChange > 0
-      ? `+${formatDecimal(absoluteChange, 1)}`
-      : formatDecimal(absoluteChange, 1);
-
   const percentageChange = formatPercentage(Math.abs(percentChange));
 
   const changeDescription =
