@@ -1,24 +1,19 @@
-import Link from "next/link";
-import { CountyPriorityTable } from "../components/county-priority-table";
 import { MetricCard } from "../components/metric-card";
 import { StatewideControls } from "../components/statewide-controls";
+import { StatewideCountyExplorer } from "../components/statewide-county-explorer";
+
 import {
   parseCountyListSearchParams,
   type RawSearchParams,
 } from "../lib/county-query";
+
 import { formatInteger, formatPercentage } from "../lib/formatters";
+
 import { createCapacityService } from "../lib/services";
 
 type HomePageProps = {
   searchParams: Promise<RawSearchParams>;
 };
-
-const AGE_LABELS = {
-  all: "all ages",
-  "0-5": "ages 0 to 5",
-  "6-12": "ages 6 to 12",
-  "13-17": "ages 13 to 17",
-} as const;
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const rawSearchParams = await searchParams;
@@ -31,8 +26,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const statewide = response.statewide;
 
-  const focusLabel =
-    query.focus === "recruitment" ? "Recruitment" : "Existing-home engagement";
+  const mapCounties =
+    query.search.length === 0
+      ? response.counties
+      : service.getStatewidePriorities({
+          ...query,
+          search: "",
+          sort: "county",
+          direction: "asc",
+        }).counties;
 
   return (
     <div className="page-shell">
@@ -101,13 +103,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               />
 
               <MetricCard
-                label="Placed within removal county"
-                value={formatPercentage(statewide.localPlacementRate)}
                 detail={`${formatInteger(
                   statewide.localFosterPlacements,
                 )} of ${formatInteger(
                   statewide.currentFosterHomePlacements,
                 )} foster-home placements`}
+                label="Placed near home community"
+                value={formatPercentage(statewide.localPlacementRate)}
               />
             </>
           ) : (
@@ -136,48 +138,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
       </section>
 
-      <section aria-labelledby="county-priorities" className="content-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{focusLabel}</p>
-
-            <h2>
-              {query.focus === "recruitment"
-                ? "Recruitment priorities by county"
-                : "Retention and engagement priorities by county"}
-            </h2>
-
-            <p>
-              Showing {focusLabel.toLowerCase()} indicators for{" "}
-              {AGE_LABELS[query.age]}. Limited-data counties remain visible but
-              are not elevated solely by unstable percentages.
-            </p>
-          </div>
-
-          <p className="result-count">
-            {formatInteger(response.totalCount)}{" "}
-            {response.totalCount === 1 ? "county" : "counties"}
-          </p>
-        </div>
-
-        {response.counties.length > 0 ? (
-          <CountyPriorityTable
-            counties={response.counties}
-            focus={query.focus}
-            query={response.query}
-          />
-        ) : (
-          <div className="empty-table-state">
-            <h3>No counties match the current search</h3>
-
-            <p>Try a broader county name or reset the current filters.</p>
-
-            <Link className="button button--primary" href="/">
-              Reset filters
-            </Link>
-          </div>
-        )}
-      </section>
+      <StatewideCountyExplorer
+        counties={response.counties}
+        mapCounties={mapCounties}
+        query={response.query}
+        totalCount={response.totalCount}
+      />
     </div>
   );
 }

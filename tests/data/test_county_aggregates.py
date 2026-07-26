@@ -29,10 +29,10 @@ def test_county_labels_and_slugs_are_unique(
     assert len(county_names) == len(county_rows)
     assert len(county_slugs) == len(county_rows)
 
-    # These are separate source labels. No undocumented
-    # spelling normalization is performed.
+    # The known source spelling variant is canonicalized
+    # before county aggregation.
     assert "Vermilion" in county_names
-    assert "Vermillion" in county_names
+    assert "Vermillion" not in county_names
 
 
 def test_county_totals_reconcile_to_statewide_baselines(
@@ -40,7 +40,7 @@ def test_county_totals_reconcile_to_statewide_baselines(
 ) -> None:
     """County measures must sum to statewide values."""
 
-    assert len(county_rows) == 103
+    assert len(county_rows) == 102
 
     assert sum(row.children_currently_in_care for row in county_rows) == 8_071
 

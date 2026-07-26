@@ -33,22 +33,23 @@ describe("typed SQLite repositories", () => {
       homesWithRecentActivity: 3_170,
       homesWithoutRecentActivity: 225,
 
-      localFosterPlacements: 1_519,
-      outOfCountyFosterPlacements: 2_824,
-      localPlacementRate: expect.closeTo(1_519 / 4_343, 8),
-
-      medianObservedActiveDayRate: expect.any(Number),
+      localFosterPlacements: 1519,
+      outOfCountyFosterPlacements: 2824,
+      renewalsWithin90Days: 1457,
+      renewalsWithoutRecentActivity: 184,
+      localPlacementRate: 0.3497582316371172,
+      medianObservedActiveDayRate: 0.6967113276492083,
     });
   });
 
   it("returns all county summaries", () => {
     const counties = countyRepository.listSummaries();
 
-    expect(counties).toHaveLength(103);
+    expect(counties).toHaveLength(102);
 
     const uniqueSlugs = new Set(counties.map((county) => county.countySlug));
 
-    expect(uniqueSlugs.size).toBe(103);
+    expect(uniqueSlugs.size).toBe(102);
     expect(counties.some((county) => county.countySlug === "cook")).toBe(true);
   });
 
@@ -127,7 +128,7 @@ describe("typed SQLite repositories", () => {
   it("reads one age band for all counties", () => {
     const rows = countyRepository.listAgeAlignmentForBand("0-5");
 
-    expect(rows).toHaveLength(103);
+    expect(rows).toHaveLength(102);
 
     for (const row of rows) {
       expect(row.ageBand).toBe("0-5");

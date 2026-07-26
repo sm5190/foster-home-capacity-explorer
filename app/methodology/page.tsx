@@ -143,6 +143,26 @@ export default function MethodologyPage() {
           display rule is a product convention and is not an official DCFS
           classification.
         </p>
+
+        <h2>Illinois county map</h2>
+
+        <p>
+          The map uses the same county opportunity labels and filtered evidence
+          shown in the statewide county table. Recruitment colours therefore
+          respond to the selected age group, while engagement colours use the
+          current existing-home engagement classification.
+        </p>
+
+        <p>
+          County boundaries are derived from U.S. Census Bureau cartographic
+          county boundary files distributed through the us-atlas project.
+          Geographic position does not affect the opportunity calculation.
+        </p>
+
+        <p>
+          The map is an exploratory interface. The county table remains the
+          authoritative view for exact values, sorting, and comparison.
+        </p>
       </section>
     </div>
   );

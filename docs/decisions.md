@@ -60,3 +60,27 @@ foster-home placement activity during the previous 90 days.
 
 The metric is used as outreach evidence. It is not treated as a
 prediction of non-renewal or closure.
+
+## Illinois county choropleth
+
+The statewide page includes an interactive Illinois county map.
+
+The map uses the same opportunity results returned by the typed
+capacity service. It does not maintain a separate classification
+or data calculation.
+
+Recruitment colouring uses the effective recruitment result for
+the selected age filter. Engagement colouring uses the current
+engagement result.
+
+County geometry is generated locally from the us-atlas Census
+county topology. The generated application asset contains only
+the 102 Illinois county features.
+
+The map and aggregate data are joined through canonical county
+slugs. The known source spelling variant "Vermillion" is
+canonicalized to the official Illinois spelling "Vermilion"
+during source loading.
+
+The semantic county table remains available for exact values,
+sorting, searching, and nonvisual access.
