@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import { formatInteger } from "../lib/formatters";
@@ -9,9 +10,6 @@ import { formatInteger } from "../lib/formatters";
 import type { CountyListQuery, CountySummary } from "../lib/schemas";
 
 import { CountyPriorityTable } from "./county-priority-table";
-// import { IllinoisPriorityMap } from "./illinois-priority-map";
-
-import dynamic from "next/dynamic";
 
 type StatewideCountyExplorerProps = {
   mapCounties: readonly CountySummary[];
@@ -50,8 +48,22 @@ export function StatewideCountyExplorer({
 }: StatewideCountyExplorerProps) {
   const [activeCountySlug, setActiveCountySlug] = useState<string | null>(null);
 
-  const focusLabel =
-    query.focus === "recruitment" ? "Recruitment" : "Existing-home engagement";
+  const isRecruitment = query.focus === "recruitment";
+
+  const focusLabel = isRecruitment ? "Recruitment" : "Existing-home engagement";
+
+  const tableHeading = isRecruitment
+    ? "Recruitment priorities by county"
+    : "Retention and engagement indicators by county";
+
+  const tableDescription = isRecruitment
+    ? `Showing recruitment indicators for ` +
+      `${AGE_LABELS[query.age]}. ` +
+      `Limited-data counties remain visible but are not elevated solely by unstable percentages.`
+    : `Compare recent provider activity, upcoming renewals, ` +
+      `the intersection of renewal timing with no recent activity, ` +
+      `and observed active-day rates. All counties remain visible ` +
+      `for statewide context, including counties without an elevated signal.`;
 
   return (
     <>
@@ -71,7 +83,7 @@ export function StatewideCountyExplorer({
 
         <IllinoisPriorityMap
           activeCountySlug={activeCountySlug}
-          age={query.age}
+          age={isRecruitment ? query.age : "all"}
           counties={mapCounties}
           focus={query.focus}
           onCountyActivate={setActiveCountySlug}
@@ -88,17 +100,9 @@ export function StatewideCountyExplorer({
           <div>
             <p className="eyebrow">{focusLabel}</p>
 
-            <h2 id="county-priorities-heading">
-              {query.focus === "recruitment"
-                ? "Recruitment priorities by county"
-                : "Retention and engagement priorities by county"}
-            </h2>
+            <h2 id="county-priorities-heading">{tableHeading}</h2>
 
-            <p>
-              Showing {focusLabel.toLowerCase()} indicators for{" "}
-              {AGE_LABELS[query.age]}. Limited-data counties remain visible but
-              are not elevated solely by unstable percentages.
-            </p>
+            <p>{tableDescription}</p>
           </div>
 
           <p className="result-count">
