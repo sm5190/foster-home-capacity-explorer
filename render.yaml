@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: foster-insights-capacity-explorer
+    name: foster-home-capacity-explorer
     runtime: docker
     plan: free
-    region: virginia
+    region: ohio
     branch: main
 
     dockerfilePath: ./Dockerfile
