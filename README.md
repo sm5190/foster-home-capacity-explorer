@@ -5,7 +5,7 @@ recruitment, retention, and engagement signals across Illinois.
 
 ## Live application
 
-**Production:** https://YOUR-SERVICE-NAME.onrender.com
+**Production:** https://foster-home-capacity-explorer.onrender.com/
 
 **Repository:** https://github.com/sm5190/foster-home-capacity-explorer
 
@@ -171,7 +171,7 @@ All expensive calculations are completed offline, and runtime requests perform
 small indexed aggregate queries. SQLite provides a simple and reproducible
 deployment artifact without requiring an external database service.
 
-Privacy boundary
+### Privacy boundary
 
 The production runtime contains only:
 
@@ -203,13 +203,12 @@ Requirements:
 - uv
 - Docker Desktop
 
-install dependencies: 
+### install dependencies: 
 ```bash
 npm ci
 uv pip install --requirement requirements.txt
-Add controlled source files
 ```
-
+### Add controlled source files
 Place these files in data/raw:
 
 ```text
@@ -220,16 +219,16 @@ data/raw/provider_level_updated.csv
 
 Do not commit them.
 
-Build the aggregate database:
+### Build the aggregate database:
 ```bash
 uv run python -m scripts.build_database
 ```
 
-Generate the Illinois map asset:
+### Generate the Illinois map asset:
 ```bash
 npm run map:build
 ```
-Start development mode:
+### Start development mode:
 ```bash
 npm run dev
 
@@ -265,7 +264,6 @@ npm run smoke
 ```bash
 docker build `
   --tag foster-home-capacity-explorer `
-
   .
 ```
 
@@ -283,7 +281,7 @@ docker run `
 http://localhost:3000
 
 ```
-Health endpoint: 
+### Health endpoint: 
 ```text
 GET /api/health
 ```
@@ -332,33 +330,17 @@ render.yaml                  Render Blueprint
 - Renewal dates are not interpreted as closures.
 - Out-of-county placement patterns do not establish causation.
 - Opportunity labels identify questions to investigate rather than prescribed
-- actions.
+  actions.
 - The application is an analytical snapshot, not a live placement-management
 system.
 
 ## Decision log
 
-See:
-```text
- docs/decision-log.md.
- ```
+See the [Decision Log](docs/decision-log.md).
 
 ## Release
 
 Final submission tag:
 ```text
 submission-v1.0
-```
-
-The deployed commit SHA is recorded with the final submission.
-
-
-Replace the production placeholder:
-
-```powershell
-(Get-Content README.md -Raw).Replace(
-  "https://YOUR-SERVICE-NAME.onrender.com",
-  $renderUrl
-) | Set-Content README.md
-
 ```
