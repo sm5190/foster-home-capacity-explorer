@@ -51,8 +51,7 @@ jobs:
       - name: Verify committed aggregate artifacts
         run: |
           test -f data/generated/foster_capacity.db
-          test -f data/generated/county-summary.csv
-          test -f data/generated/metadata.json
+          test -f lib/map/illinois-counties.json
 
           echo "Committed aggregate artifacts are present."
 
@@ -153,14 +152,29 @@ jobs:
                   """
               ).fetchone()[0]
 
-              trend_month_count = connection.execute(
+              snapshot_count = connection.execute(
                   """
                   SELECT COUNT(
-                      DISTINCT snapshot_month
+                      DISTINCT snapshot_date
                   )
                   FROM county_monthly_trend
                   """
               ).fetchone()[0]
+
+              duplicate_county_count = (
+                  connection.execute(
+                      """
+                      SELECT COUNT(*)
+                      FROM (
+                          SELECT
+                              county_slug
+                          FROM county_summary
+                          GROUP BY county_slug
+                          HAVING COUNT(*) > 1
+                      )
+                      """
+                  ).fetchone()[0]
+              )
 
               database_county_slugs = {
                   row[0]
@@ -180,7 +194,10 @@ jobs:
                   f"{metadata.get('schema_version')!r}"
               )
 
-          if metadata.get("reporting_cutoff") != "2026-07-01":
+          if (
+              metadata.get("reporting_cutoff")
+              != "2026-07-01"
+          ):
               raise SystemExit(
                   "Unexpected reporting cutoff: "
                   f"{metadata.get('reporting_cutoff')!r}"
@@ -197,16 +214,21 @@ jobs:
                   f"Expected 102; found {county_count}."
               )
 
+          if duplicate_county_count != 0:
+              raise SystemExit(
+                  "Duplicate county slugs exist."
+              )
+
           if trend_count != 1326:
               raise SystemExit(
                   "Unexpected trend row count. "
                   f"Expected 1326; found {trend_count}."
               )
 
-          if trend_month_count != 13:
+          if snapshot_count != 13:
               raise SystemExit(
-                  "Unexpected monthly snapshot count. "
-                  f"Expected 13; found {trend_month_count}."
+                  "Unexpected snapshot count. "
+                  f"Expected 13; found {snapshot_count}."
               )
 
           map_data = json.loads(
@@ -215,9 +237,14 @@ jobs:
               )
           )
 
-          features = map_data.get("features")
+          features = map_data.get(
+              "features"
+          )
 
-          if not isinstance(features, list):
+          if not isinstance(
+              features,
+              list,
+          ):
               raise SystemExit(
                   "Map feature collection is invalid."
               )
@@ -229,7 +256,9 @@ jobs:
               )
 
           map_county_slugs = {
-              feature["properties"]["countySlug"]
+              feature["properties"][
+                  "countySlug"
+              ]
               for feature in features
           }
 
@@ -248,7 +277,10 @@ jobs:
               - database_county_slugs
           )
 
-          if missing_from_map or missing_from_database:
+          if (
+              missing_from_map
+              or missing_from_database
+          ):
               raise SystemExit(
                   "Map and database counties differ.\n"
                   f"Missing from map: {missing_from_map}\n"
@@ -256,22 +288,46 @@ jobs:
                   f"{missing_from_database}"
               )
 
-          if "vermilion" not in map_county_slugs:
+          if (
+              "vermilion"
+              not in map_county_slugs
+          ):
               raise SystemExit(
                   "Canonical Vermilion county is missing."
               )
 
-          if "vermillion" in map_county_slugs:
+          if (
+              "vermillion"
+              in map_county_slugs
+          ):
               raise SystemExit(
                   "Noncanonical Vermillion spelling remains."
               )
 
-          print("Aggregate and map validation passed.")
-          print(f"Schema version: {metadata['schema_version']}")
-          print(f"County rows: {county_count}")
-          print(f"Trend rows: {trend_count}")
-          print(f"Monthly snapshots: {trend_month_count}")
-          print(f"Map features: {len(features)}")
+          print(
+              "Aggregate and map validation passed."
+          )
+
+          print(
+              "Schema version: "
+              f"{metadata['schema_version']}"
+          )
+
+          print(
+              f"County rows: {county_count}"
+          )
+
+          print(
+              f"Trend rows: {trend_count}"
+          )
+
+          print(
+              f"Snapshots: {snapshot_count}"
+          )
+
+          print(
+              f"Map features: {len(features)}"
+          )
           PY
 
       - name: Run complete web quality gate
@@ -311,6 +367,7 @@ jobs:
       - name: Verify production database exists
         run: |
           test -f data/generated/foster_capacity.db
+
           echo "Production database is present."
 
       - name: Build production Docker image
@@ -343,7 +400,9 @@ jobs:
             fi
 
             if [ "${status}" = "unhealthy" ]; then
-              docker logs foster-home-capacity-explorer-ci
+              docker logs \
+                foster-home-capacity-explorer-ci
+
               exit 1
             fi
 
@@ -351,7 +410,10 @@ jobs:
           done
 
           echo "Container did not become healthy in time."
-          docker logs foster-home-capacity-explorer-ci
+
+          docker logs \
+            foster-home-capacity-explorer-ci
+
           exit 1
 
       - name: Run production smoke tests
@@ -375,6 +437,7 @@ jobs:
 
           if [ "${runtime_files}" != "${expected_file}" ]; then
             echo "Unexpected runtime data files were found."
+
             exit 1
           fi
 
@@ -385,6 +448,7 @@ jobs:
             sh -lc \
             "test -d /app/data/raw"; then
             echo "Raw data directory unexpectedly exists."
+
             exit 1
           fi
 
@@ -402,13 +466,16 @@ jobs:
 
           if [ "${runtime_user}" != "nextjs" ]; then
             echo "Container is not running as nextjs."
+
             exit 1
           fi
 
       - name: Show container logs after failure
         if: failure()
         run: |
-          docker logs foster-home-capacity-explorer-ci || true
+          docker logs \
+            foster-home-capacity-explorer-ci \
+            || true
 
       - name: Remove test container
         if: always()
@@ -416,4 +483,5 @@ jobs:
           docker rm \
             --force \
             foster-home-capacity-explorer-ci \
-            2>/dev/null || true
+            2>/dev/null \
+            || true
