@@ -28,26 +28,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: requirements.txt
 
       - name: Install Python dependencies
-        run: uv sync --frozen
+        run: uv pip install --system --requirement requirements.txt
 
       - name: Check Python formatting
-        run: uv run ruff format --check scripts tests
+        run: python -m ruff format --check scripts tests
 
       - name: Lint Python
-        run: uv run ruff check scripts tests
+        run: python -m ruff check scripts tests
 
       - name: Build aggregate database
-        run: uv run python -m scripts.build_database
+        run: python -m scripts.build_database
 
       - name: Run Python tests
-        run: uv run pytest
+        run: python -m pytest
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -63,7 +68,7 @@ jobs:
 
       - name: Validate aggregate and map contracts
         run: |
-          uv run python - <<'PY'
+          python - <<'PY'
           from __future__ import annotations
 
           import json
@@ -254,17 +259,22 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: requirements.txt
 
       - name: Install Python dependencies
-        run: uv sync --frozen
+        run: uv pip install --system --requirement requirements.txt
 
       - name: Rebuild aggregate database
-        run: uv run python -m scripts.build_database
+        run: python -m scripts.build_database
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
