@@ -34,7 +34,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
           enable-cache: true
           cache-dependency-glob: requirements.txt
@@ -48,8 +48,13 @@ jobs:
       - name: Lint Python
         run: python -m ruff check scripts tests
 
-      - name: Build aggregate database
-        run: python -m scripts.build_database
+      - name: Verify committed aggregate artifacts
+        run: |
+          test -f data/generated/foster_capacity.db
+          test -f data/generated/county-summary.csv
+          test -f data/generated/metadata.json
+
+          echo "Committed aggregate artifacts are present."
 
       - name: Run Python tests
         run: python -m pytest
@@ -71,6 +76,7 @@ jobs:
           python - <<'PY'
           from __future__ import annotations
 
+          import hashlib
           import json
           import sqlite3
           from pathlib import Path
@@ -79,26 +85,47 @@ jobs:
               "data/generated/foster_capacity.db"
           )
 
+          county_export_path = Path(
+              "data/generated/county-summary.csv"
+          )
+
+          metadata_path = Path(
+              "data/generated/metadata.json"
+          )
+
           map_path = Path(
               "lib/map/illinois-counties.json"
           )
 
-          if not database_path.is_file():
-              raise SystemExit(
-                  "Generated aggregate database is missing."
-              )
+          required_files = (
+              database_path,
+              county_export_path,
+              metadata_path,
+              map_path,
+          )
 
-          if not map_path.is_file():
-              raise SystemExit(
-                  "Generated Illinois map asset is missing."
-              )
+          for required_file in required_files:
+              if not required_file.is_file():
+                  raise SystemExit(
+                      f"Required artifact is missing: {required_file}"
+                  )
 
-          connection = sqlite3.connect(database_path)
+          metadata_file = json.loads(
+              metadata_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          connection = sqlite3.connect(
+              database_path
+          )
 
           try:
-              integrity_result = connection.execute(
-                  "PRAGMA integrity_check"
-              ).fetchone()
+              integrity_result = (
+                  connection.execute(
+                      "PRAGMA integrity_check"
+                  ).fetchone()
+              )
 
               if integrity_result != ("ok",):
                   raise SystemExit(
@@ -106,9 +133,11 @@ jobs:
                       f"{integrity_result!r}"
                   )
 
-              foreign_key_errors = connection.execute(
-                  "PRAGMA foreign_key_check"
-              ).fetchall()
+              foreign_key_errors = (
+                  connection.execute(
+                      "PRAGMA foreign_key_check"
+                  ).fetchall()
+              )
 
               if foreign_key_errors:
                   raise SystemExit(
@@ -116,7 +145,7 @@ jobs:
                       f"{foreign_key_errors!r}"
                   )
 
-              metadata = dict(
+              database_metadata = dict(
                   connection.execute(
                       """
                       SELECT
@@ -127,19 +156,23 @@ jobs:
                   ).fetchall()
               )
 
-              county_count = connection.execute(
-                  """
-                  SELECT COUNT(*)
-                  FROM county_summary
-                  """
-              ).fetchone()[0]
+              county_count = (
+                  connection.execute(
+                      """
+                      SELECT COUNT(*)
+                      FROM county_summary
+                      """
+                  ).fetchone()[0]
+              )
 
-              trend_count = connection.execute(
-                  """
-                  SELECT COUNT(*)
-                  FROM county_monthly_trend
-                  """
-              ).fetchone()[0]
+              trend_count = (
+                  connection.execute(
+                      """
+                      SELECT COUNT(*)
+                      FROM county_monthly_trend
+                      """
+                  ).fetchone()[0]
+              )
 
               database_county_slugs = {
                   row[0]
@@ -150,24 +183,97 @@ jobs:
                       """
                   ).fetchall()
               }
+
+              duplicate_county_slugs = (
+                  connection.execute(
+                      """
+                      SELECT COUNT(*)
+                      FROM (
+                          SELECT
+                              county_slug
+                          FROM county_summary
+                          GROUP BY county_slug
+                          HAVING COUNT(*) > 1
+                      )
+                      """
+                  ).fetchone()[0]
+              )
+
+              trend_month_count = (
+                  connection.execute(
+                      """
+                      SELECT COUNT(
+                          DISTINCT snapshot_month
+                      )
+                      FROM county_monthly_trend
+                      """
+                  ).fetchone()[0]
+              )
           finally:
               connection.close()
 
-          if metadata.get("schema_version") != "1.3":
+          if (
+              database_metadata.get(
+                  "schema_version"
+              )
+              != "1.3"
+          ):
               raise SystemExit(
-                  "Unexpected schema version: "
-                  f"{metadata.get('schema_version')!r}"
+                  "Unexpected database schema version: "
+                  f"{database_metadata.get('schema_version')!r}"
               )
 
-          if metadata.get("reporting_cutoff") != "2026-07-01":
+          if (
+              database_metadata.get(
+                  "reporting_cutoff"
+              )
+              != "2026-07-01"
+          ):
               raise SystemExit(
-                  "Unexpected reporting cutoff: "
-                  f"{metadata.get('reporting_cutoff')!r}"
+                  "Unexpected database reporting cutoff: "
+                  f"{database_metadata.get('reporting_cutoff')!r}"
               )
 
-          if metadata.get("build_status") != "complete":
+          if (
+              database_metadata.get(
+                  "build_status"
+              )
+              != "complete"
+          ):
               raise SystemExit(
                   "Database build is not marked complete."
+              )
+
+          if (
+              metadata_file.get(
+                  "schema_version"
+              )
+              != "1.3"
+          ):
+              raise SystemExit(
+                  "Unexpected metadata.json schema version: "
+                  f"{metadata_file.get('schema_version')!r}"
+              )
+
+          if (
+              metadata_file.get(
+                  "reporting_cutoff"
+              )
+              != "2026-07-01"
+          ):
+              raise SystemExit(
+                  "Unexpected metadata.json reporting cutoff: "
+                  f"{metadata_file.get('reporting_cutoff')!r}"
+              )
+
+          if (
+              metadata_file.get(
+                  "build_status"
+              )
+              != "complete"
+          ):
+              raise SystemExit(
+                  "metadata.json is not marked complete."
               )
 
           if county_count != 102:
@@ -176,19 +282,85 @@ jobs:
                   f"Expected 102; found {county_count}."
               )
 
+          if duplicate_county_slugs != 0:
+              raise SystemExit(
+                  "Duplicate county slugs exist in county_summary."
+              )
+
           if trend_count != 1326:
               raise SystemExit(
                   "Unexpected monthly-trend row count. "
                   f"Expected 1326; found {trend_count}."
               )
 
-          map_data = json.loads(
-              map_path.read_text(encoding="utf-8")
+          if trend_month_count != 13:
+              raise SystemExit(
+                  "Unexpected monthly snapshot count. "
+                  f"Expected 13; found {trend_month_count}."
+              )
+
+          expected_database_hash = (
+              metadata_file.get(
+                  "database",
+                  {},
+              ).get("sha256")
           )
 
-          features = map_data.get("features")
+          actual_database_hash = (
+              hashlib.sha256(
+                  database_path.read_bytes()
+              ).hexdigest()
+          )
 
-          if not isinstance(features, list):
+          if (
+              expected_database_hash
+              != actual_database_hash
+          ):
+              raise SystemExit(
+                  "The committed database SHA-256 does not "
+                  "match metadata.json.\n"
+                  f"Expected: {expected_database_hash}\n"
+                  f"Actual:   {actual_database_hash}"
+              )
+
+          expected_export_hash = (
+              metadata_file.get(
+                  "county_export",
+                  {},
+              ).get("sha256")
+          )
+
+          actual_export_hash = (
+              hashlib.sha256(
+                  county_export_path.read_bytes()
+              ).hexdigest()
+          )
+
+          if (
+              expected_export_hash
+              != actual_export_hash
+          ):
+              raise SystemExit(
+                  "The committed county export SHA-256 does "
+                  "not match metadata.json.\n"
+                  f"Expected: {expected_export_hash}\n"
+                  f"Actual:   {actual_export_hash}"
+              )
+
+          map_data = json.loads(
+              map_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          features = map_data.get(
+              "features"
+          )
+
+          if not isinstance(
+              features,
+              list,
+          ):
               raise SystemExit(
                   "Map asset does not contain a feature list."
               )
@@ -200,7 +372,9 @@ jobs:
               )
 
           map_county_slugs = {
-              feature["properties"]["countySlug"]
+              feature["properties"][
+                  "countySlug"
+              ]
               for feature in features
           }
 
@@ -210,14 +384,19 @@ jobs:
               )
 
           missing_from_map = sorted(
-              database_county_slugs - map_county_slugs
+              database_county_slugs
+              - map_county_slugs
           )
 
           missing_from_database = sorted(
-              map_county_slugs - database_county_slugs
+              map_county_slugs
+              - database_county_slugs
           )
 
-          if missing_from_map or missing_from_database:
+          if (
+              missing_from_map
+              or missing_from_database
+          ):
               raise SystemExit(
                   "Map and database county coverage differ.\n"
                   f"Missing from map: {missing_from_map}\n"
@@ -225,25 +404,58 @@ jobs:
                   f"{missing_from_database}"
               )
 
-          if "vermilion" not in map_county_slugs:
+          if (
+              "vermilion"
+              not in map_county_slugs
+          ):
               raise SystemExit(
                   "Canonical Vermilion county is missing."
               )
 
-          if "vermillion" in map_county_slugs:
+          if (
+              "vermillion"
+              in map_county_slugs
+          ):
               raise SystemExit(
                   "Noncanonical Vermillion spelling remains."
               )
 
-          print("Aggregate and map contracts passed.")
-          print(f"Schema version: {metadata['schema_version']}")
-          print(f"County rows: {county_count}")
-          print(f"Monthly trend rows: {trend_count}")
-          print(f"Map features: {len(features)}")
+          print(
+              "Aggregate and map contracts passed."
+          )
+          print(
+              "Schema version: "
+              f"{database_metadata['schema_version']}"
+          )
+          print(
+              f"County rows: {county_count}"
+          )
+          print(
+              "Monthly trend rows: "
+              f"{trend_count}"
+          )
+          print(
+              "Monthly snapshots: "
+              f"{trend_month_count}"
+          )
+          print(
+              f"Map features: {len(features)}"
+          )
+          print(
+              "Database SHA-256 matches metadata."
+          )
+          print(
+              "County export SHA-256 matches metadata."
+          )
           PY
 
       - name: Run complete web quality gate
         run: npm run check
+
+      - name: Verify generated map is committed
+        run: |
+          git diff --exit-code -- \
+            lib/map/illinois-counties.json
 
       - name: Check whitespace errors
         run: git diff --check
@@ -259,23 +471,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: requirements.txt
-
-      - name: Install Python dependencies
-        run: uv pip install --system --requirement requirements.txt
-
-      - name: Rebuild aggregate database
-        run: python -m scripts.build_database
-
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
@@ -287,6 +482,11 @@ jobs:
 
       - name: Rebuild Illinois map data
         run: npm run map:build
+
+      - name: Verify production database exists
+        run: |
+          test -f data/generated/foster_capacity.db
+          echo "Production database is present."
 
       - name: Build production Docker image
         run: |
@@ -318,7 +518,9 @@ jobs:
             fi
 
             if [ "${status}" = "unhealthy" ]; then
-              docker logs foster-home-capacity-explorer-ci
+              docker logs \
+                foster-home-capacity-explorer-ci
+
               exit 1
             fi
 
@@ -326,7 +528,10 @@ jobs:
           done
 
           echo "Container did not become healthy in time."
-          docker logs foster-home-capacity-explorer-ci
+
+          docker logs \
+            foster-home-capacity-explorer-ci
+
           exit 1
 
       - name: Run production smoke tests
@@ -353,6 +558,18 @@ jobs:
             exit 1
           fi
 
+      - name: Verify raw data is absent
+        run: |
+          if docker exec \
+            foster-home-capacity-explorer-ci \
+            sh -lc \
+            "test -d /app/data/raw"; then
+            echo "Raw data directory unexpectedly exists."
+            exit 1
+          fi
+
+          echo "Raw source data is absent from the runtime image."
+
       - name: Verify non-root runtime user
         run: |
           runtime_user="$(
@@ -371,7 +588,9 @@ jobs:
       - name: Show container logs after failure
         if: failure()
         run: |
-          docker logs foster-home-capacity-explorer-ci || true
+          docker logs \
+            foster-home-capacity-explorer-ci \
+            || true
 
       - name: Remove test container
         if: always()
@@ -379,4 +598,5 @@ jobs:
           docker rm \
             --force \
             foster-home-capacity-explorer-ci \
-            2>/dev/null || true
+            2>/dev/null \
+            || true
