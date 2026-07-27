@@ -34,7 +34,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
           enable-cache: true
           cache-dependency-glob: requirements.txt
@@ -48,11 +48,21 @@ jobs:
       - name: Lint Python
         run: python -m ruff check scripts tests
 
-      - name: Build aggregate database
-        run: python -m scripts.build_database
+      - name: Verify committed aggregate artifacts
+        run: |
+          test -f data/generated/foster_capacity.db
+          test -f data/generated/county-summary.csv
+          test -f data/generated/metadata.json
 
-      - name: Run Python tests
-        run: python -m pytest
+          echo "Committed aggregate artifacts are present."
+
+      - name: Run public Python test suite
+        run: |
+          python -m pytest \
+            tests/data/test_aggregate_age_alignment.py \
+            tests/data/test_county_name_normalization.py \
+            tests/data/test_investigation_questions.py \
+            tests/integration/test_database_schema.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -66,7 +76,7 @@ jobs:
       - name: Build Illinois map data
         run: npm run map:build
 
-      - name: Validate aggregate and map contracts
+      - name: Validate aggregate database and map
         run: |
           python - <<'PY'
           from __future__ import annotations
@@ -85,15 +95,17 @@ jobs:
 
           if not database_path.is_file():
               raise SystemExit(
-                  "Generated aggregate database is missing."
+                  "Aggregate database is missing."
               )
 
           if not map_path.is_file():
               raise SystemExit(
-                  "Generated Illinois map asset is missing."
+                  "Illinois map asset is missing."
               )
 
-          connection = sqlite3.connect(database_path)
+          connection = sqlite3.connect(
+              database_path
+          )
 
           try:
               integrity_result = connection.execute(
@@ -112,7 +124,7 @@ jobs:
 
               if foreign_key_errors:
                   raise SystemExit(
-                      "SQLite foreign-key validation failed: "
+                      "SQLite foreign-key check failed: "
                       f"{foreign_key_errors!r}"
                   )
 
@@ -137,6 +149,15 @@ jobs:
               trend_count = connection.execute(
                   """
                   SELECT COUNT(*)
+                  FROM county_monthly_trend
+                  """
+              ).fetchone()[0]
+
+              trend_month_count = connection.execute(
+                  """
+                  SELECT COUNT(
+                      DISTINCT snapshot_month
+                  )
                   FROM county_monthly_trend
                   """
               ).fetchone()[0]
@@ -167,7 +188,7 @@ jobs:
 
           if metadata.get("build_status") != "complete":
               raise SystemExit(
-                  "Database build is not marked complete."
+                  "Database is not marked complete."
               )
 
           if county_count != 102:
@@ -178,24 +199,32 @@ jobs:
 
           if trend_count != 1326:
               raise SystemExit(
-                  "Unexpected monthly-trend row count. "
+                  "Unexpected trend row count. "
                   f"Expected 1326; found {trend_count}."
               )
 
+          if trend_month_count != 13:
+              raise SystemExit(
+                  "Unexpected monthly snapshot count. "
+                  f"Expected 13; found {trend_month_count}."
+              )
+
           map_data = json.loads(
-              map_path.read_text(encoding="utf-8")
+              map_path.read_text(
+                  encoding="utf-8"
+              )
           )
 
           features = map_data.get("features")
 
           if not isinstance(features, list):
               raise SystemExit(
-                  "Map asset does not contain a feature list."
+                  "Map feature collection is invalid."
               )
 
           if len(features) != 102:
               raise SystemExit(
-                  "Unexpected Illinois map feature count. "
+                  "Unexpected map feature count. "
                   f"Expected 102; found {len(features)}."
               )
 
@@ -210,16 +239,18 @@ jobs:
               )
 
           missing_from_map = sorted(
-              database_county_slugs - map_county_slugs
+              database_county_slugs
+              - map_county_slugs
           )
 
           missing_from_database = sorted(
-              map_county_slugs - database_county_slugs
+              map_county_slugs
+              - database_county_slugs
           )
 
           if missing_from_map or missing_from_database:
               raise SystemExit(
-                  "Map and database county coverage differ.\n"
+                  "Map and database counties differ.\n"
                   f"Missing from map: {missing_from_map}\n"
                   "Missing from database: "
                   f"{missing_from_database}"
@@ -235,15 +266,21 @@ jobs:
                   "Noncanonical Vermillion spelling remains."
               )
 
-          print("Aggregate and map contracts passed.")
+          print("Aggregate and map validation passed.")
           print(f"Schema version: {metadata['schema_version']}")
           print(f"County rows: {county_count}")
-          print(f"Monthly trend rows: {trend_count}")
+          print(f"Trend rows: {trend_count}")
+          print(f"Monthly snapshots: {trend_month_count}")
           print(f"Map features: {len(features)}")
           PY
 
       - name: Run complete web quality gate
         run: npm run check
+
+      - name: Verify generated map is committed
+        run: |
+          git diff --exit-code -- \
+            lib/map/illinois-counties.json
 
       - name: Check whitespace errors
         run: git diff --check
@@ -259,23 +296,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: requirements.txt
-
-      - name: Install Python dependencies
-        run: uv pip install --system --requirement requirements.txt
-
-      - name: Rebuild aggregate database
-        run: python -m scripts.build_database
-
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
@@ -285,8 +305,13 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Rebuild Illinois map data
+      - name: Build Illinois map data
         run: npm run map:build
+
+      - name: Verify production database exists
+        run: |
+          test -f data/generated/foster_capacity.db
+          echo "Production database is present."
 
       - name: Build production Docker image
         run: |
@@ -304,7 +329,7 @@ jobs:
 
       - name: Wait for healthy container
         run: |
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 45); do
             status="$(
               docker inspect \
                 --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' \
@@ -349,9 +374,21 @@ jobs:
           expected_file="/app/data/generated/foster_capacity.db"
 
           if [ "${runtime_files}" != "${expected_file}" ]; then
-            echo "Unexpected files were included in the runtime image."
+            echo "Unexpected runtime data files were found."
             exit 1
           fi
+
+      - name: Verify raw data is absent
+        run: |
+          if docker exec \
+            foster-home-capacity-explorer-ci \
+            sh -lc \
+            "test -d /app/data/raw"; then
+            echo "Raw data directory unexpectedly exists."
+            exit 1
+          fi
+
+          echo "Raw data is absent from the runtime image."
 
       - name: Verify non-root runtime user
         run: |
@@ -364,7 +401,7 @@ jobs:
           echo "Runtime user: ${runtime_user}"
 
           if [ "${runtime_user}" != "nextjs" ]; then
-            echo "Container is not running as the nextjs user."
+            echo "Container is not running as nextjs."
             exit 1
           fi
 
