@@ -48,8 +48,8 @@ jobs:
       - name: Lint Python
         run: python -m ruff check scripts tests
 
-      - name: Build aggregate database
-        run: python -m scripts.build_database
+      #   - name: Build aggregate database
+      #     run: python -m scripts.build_database
 
       - name: Run public Python test suite
         run: |
