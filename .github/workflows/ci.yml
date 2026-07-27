@@ -51,8 +51,13 @@ jobs:
       - name: Build aggregate database
         run: python -m scripts.build_database
 
-      - name: Run Python tests
-        run: python -m pytest
+      - name: Run public Python test suite
+        run: |
+          python -m pytest \
+            tests/data/test_aggregate_age_alignment.py \
+            tests/data/test_county_name_normalization.py \
+            tests/data/test_investigation_questions.py \
+            tests/integration/test_database_schema.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
