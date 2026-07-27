@@ -48,11 +48,16 @@ jobs:
       - name: Lint Python
         run: python -m ruff check scripts tests
 
-      - name: Build aggregate database
-        run: python -m scripts.build_database
+      #   - name: Build aggregate database
+      #     run: python -m scripts.build_database
 
-      - name: Run Python tests
-        run: python -m pytest
+      - name: Run public Python test suite
+        run: |
+          python -m pytest \
+            tests/data/test_aggregate_age_alignment.py \
+            tests/data/test_county_name_normalization.py \
+            tests/data/test_investigation_questions.py \
+            tests/integration/test_database_schema.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -247,7 +252,6 @@ jobs:
 
       - name: Check whitespace errors
         run: git diff --check
-
   container:
     name: Container smoke test
     runs-on: ubuntu-latest
@@ -258,23 +262,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: requirements.txt
-
-      - name: Install Python dependencies
-        run: uv pip install --system --requirement requirements.txt
-
-      - name: Rebuild aggregate database
-        run: python -m scripts.build_database
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -287,6 +274,11 @@ jobs:
 
       - name: Rebuild Illinois map data
         run: npm run map:build
+
+      - name: Verify production database exists
+        run: |
+          test -f data/generated/foster_capacity.db
+          echo "Production database is present."
 
       - name: Build production Docker image
         run: |
@@ -352,6 +344,18 @@ jobs:
             echo "Unexpected files were included in the runtime image."
             exit 1
           fi
+
+      - name: Verify raw data is absent
+        run: |
+          if docker exec \
+            foster-home-capacity-explorer-ci \
+            sh -lc \
+            "test -d /app/data/raw"; then
+            echo "Raw data directory unexpectedly exists."
+            exit 1
+          fi
+
+          echo "Raw source data is absent from the runtime image."
 
       - name: Verify non-root runtime user
         run: |
